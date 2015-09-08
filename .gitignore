@@ -1,6 +1,5 @@
-﻿
-*chatdata
-*stockdata
+nexination/chatdata
+stockalert/stockdata
+node_modules/
 *log
 *processid
-*/node_modules
