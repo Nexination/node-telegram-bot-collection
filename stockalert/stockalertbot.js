@@ -1,4 +1,4 @@
-﻿var https = require('https');
+var https = require('https');
 var fs = require('fs');
 var tbl = require('../node-telegram-bot-api/TelegramBotLib');
 
@@ -185,17 +185,18 @@ var StockAlertBot = new function() {
         resource.on('end', function() {
             console.log(data);
             var jsonData = JSON.parse(data);
-            
-            for(var i = 0; i < jsonData.query.results.quote.length; i += 1) {
-                var quote = jsonData.query.results.quote[i];
-                if(quote.Symbol !== 'YHOO') {
-                    if(quote.PercentChange !== null) {
-                        var currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
-                        if(main.data.stockStore[quote.Symbol] !== currentQuote) {
-                            console.log(quote.Symbol + ' ' + currentQuote);
-                            main.data.stockStore[quote.Symbol] = currentQuote;
-                            main.alarmUsers(quote.Symbol);
-                            main.dataFileAction('save');
+            if(jsonData.hasOwnProperty('query')) {
+                for(var i = 0; i < jsonData.query.results.quote.length; i += 1) {
+                    var quote = jsonData.query.results.quote[i];
+                    if(quote.Symbol !== 'YHOO') {
+                        if(quote.PercentChange !== null) {
+                            var currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
+                            if(main.data.stockStore[quote.Symbol] !== currentQuote) {
+                                console.log(quote.Symbol + ' ' + currentQuote);
+                                main.data.stockStore[quote.Symbol] = currentQuote;
+                                main.alarmUsers(quote.Symbol);
+                                main.dataFileAction('save');
+                            };
                         };
                     };
                 };

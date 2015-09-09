@@ -1,4 +1,4 @@
-﻿var NexinationBot = new function() {
+var NexinationBot = new function() {
     var main = this;
     var https = require('https');
     var WebSocket = require('ws');
