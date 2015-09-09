@@ -6,7 +6,7 @@ start () {
     if [ -f $PIDF ]; then
         echo "Already running"
     else
-        /home/nexus/node/bin/node nexinationbot.js > log 2>&1 &
+        node nexinationbot.js > log 2>&1 &
         echo $! > $PIDF
     fi
 }
