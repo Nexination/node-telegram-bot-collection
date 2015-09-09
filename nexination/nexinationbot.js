@@ -3,9 +3,9 @@ var NexinationBot = new function() {
     var https = require('https');
     var WebSocket = require('ws');
     var fs = require('fs');
+    var exec = require('child_process').exec;
     var tbl = require('../node-telegram-bot-api/TelegramBotLib');
     var JsonRpc = require('../../node-modular-chat/chat/js/JsonRpc.js').JsonRpc;
-    var groupId = -36309139;
     
     this.telegram = {};
     this.token = '98337351:AAFnE29zdpKTvjARUy49eZqpUNo67VOY66M';
@@ -53,26 +53,35 @@ var NexinationBot = new function() {
         return false;
     };
     this.register = function(result) {
-        var chatId = main.chatCheck(result.message.chat.id);
-        
-        main.dataFileAction('save');
-        
-        main.telegram.apiCall(
-            'sendMessage'
-            , {
-                "chatId": result.message.chat.id
-                , "encodedMessage": "Stop trying to use the damn commands, they are just there for show!"
-            }
-        );
-        
-        return false;
-    };
-    this.chatCheck = function(chatId) {
-        if(!main.data.users.hasOwnProperty(chatId)) {
-            main.data.users[chatId] = {};
+        if(
+            result.message.text === '/settings'
+            && main.data.users[result.message.chat.id] !== undefined
+        ) {
+            child = exec("ps ax | grep '[n]ode'", function (error, stdout, stderr) {
+                console.log('stdout:' + stdout);
+                
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": stdout
+                    }
+                );
+                if (error !== null) {
+                  console.log('exec error: ' + error);
+                };
+            });
+        } else {
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": "Stop trying to use the damn commands, they are just there for show!"
+                }
+            );
         };
         
-        return main.data.users[chatId];
+        return false;
     };
     this.messageSend = function(result) {
         var jsonRpc = main.JsonRpc.getRequest();
@@ -81,7 +90,7 @@ var NexinationBot = new function() {
             "name": result.message.from.username
             , "message": result.message.text
         };
-        if(result.message.chat.id === groupId) {
+        if(main.data.users[result.message.chat.id] !== undefined) {
             main.socket.send(JSON.stringify(jsonRpc));
         };
         
@@ -97,6 +106,10 @@ var NexinationBot = new function() {
         }
         else if(jsonRpc.method === 'nudge') {
             encodedMessage = '👍';
+        };
+        var groupId = 0;
+        for(var i in main.data.users) {
+            groupId = i;
         };
         main.telegram.apiCall(
             'sendMessage'
