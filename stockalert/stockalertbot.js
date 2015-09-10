@@ -184,7 +184,12 @@ var StockAlertBot = new function() {
         });
         resource.on('end', function() {
             console.log(data);
-            var jsonData = JSON.parse(data);
+            var jsonData = {};
+            try {
+                jsonData = JSON.parse(data);
+            } catch(error) {
+                console.log(error);
+            };
             if(jsonData.hasOwnProperty('query')) {
                 for(var i = 0; i < jsonData.query.results.quote.length; i += 1) {
                     var quote = jsonData.query.results.quote[i];
