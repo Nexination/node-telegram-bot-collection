@@ -53,25 +53,41 @@ var NexinationBot = new function() {
         return false;
     };
     this.register = function(result) {
-        if(
-            result.message.text === '/settings'
-            && main.data.users[result.message.chat.id] !== undefined
-        ) {
-            child = exec("ps ax | grep '[n]ode'", function (error, stdout, stderr) {
-                console.log('stdout:' + stdout);
-                
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": stdout
-                    }
-                );
-                if (error !== null) {
-                  console.log('exec error: ' + error);
-                };
-            });
-        } else {
+        if(main.data.users[result.message.chat.id] !== undefined) {
+            if(result.message.text === '/settings') {
+                child = exec("ps ax | grep '[n]ode'", function (error, stdout, stderr) {
+                    console.log('stdout:' + stdout);
+                    
+                    main.telegram.apiCall(
+                        'sendMessage'
+                        , {
+                            "chatId": result.message.chat.id
+                            , "encodedMessage": stdout
+                        }
+                    );
+                    if (error !== null) {
+                      console.log('exec error: ' + error);
+                    };
+                });
+            }
+            else if(result.message.text === '/help') {
+                child = exec("tail log && echo '-' && tail ../stockalert/log && echo '-' && tail ../../node-modular-chat/node-engine/log", function (error, stdout, stderr) {
+                    console.log('stdout:' + stdout);
+                    
+                    main.telegram.apiCall(
+                        'sendMessage'
+                        , {
+                            "chatId": result.message.chat.id
+                            , "encodedMessage": stdout
+                        }
+                    );
+                    if (error !== null) {
+                      console.log('exec error: ' + error);
+                    };
+                });
+            };
+        }
+        else {
             main.telegram.apiCall(
                 'sendMessage'
                 , {
