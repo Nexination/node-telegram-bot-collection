@@ -69,23 +69,6 @@ var NexinationBot = new function() {
                       console.log('exec error: ' + error);
                     };
                 });
-            }
-            else if(result.message.text === '/help') {
-                child = exec('tail log && tail ../stockalert/log && tail ../../node-modular-chat/node-engine/log', function (error, stdout, stderr) {
-                    console.log('stdout:' + stdout);
-                    
-                    main.telegram.apiCall(
-                        'sendMessage'
-                        , {
-                            "chatId": result.message.chat.id
-                            , "encodedMessage": stdout.replace(/(<([^>]+)>)/ig,"")
-                        }
-                    );
-                    console.log(tbl);
-                    if (error !== null) {
-                      console.log('exec error: ' + error);
-                    };
-                });
             };
         }
         else {
