@@ -1,4 +1,0 @@
-[submodule "node-telegram-bot-api"]
-	path = node-telegram-bot-api
-	url = git@github.com:KrisZane/node-telegram-bot-api.git
-	branch = master

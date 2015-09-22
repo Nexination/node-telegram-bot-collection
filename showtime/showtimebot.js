@@ -1,13 +1,13 @@
 var https = require('https');
 var fs = require('fs');
-var tbl = require('../node-telegram-bot-api/TelegramBotLib');
+var tbl = require('telegram-bot-api');
 
 var ShowTimeBot = new function() {
     var main = this;
     this.telegram = {};
     this.data = {
         "users": {}
-        , "stockStore": {}
+        , "showStore": {}
     };
     this.token = "132491480:AAESDrExVomueKHt4m88ZpimXJ9QIvZZMvE";
     this.chatCheck = function(chatId) {
