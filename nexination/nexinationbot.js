@@ -4,18 +4,18 @@ var NexinationBot = new function() {
     var WebSocket = require('ws');
     var fs = require('fs');
     var exec = require('child_process').exec;
-    var tbl = require('../node-telegram-bot-api/TelegramBotLib');
+    var tbl = require('telegram-bot-api');
     var JsonRpc = require('../../node-modular-chat/chat/js/JsonRpc.js').JsonRpc;
     
     this.telegram = {};
-    this.token = '98337351:AAFnE29zdpKTvjARUy49eZqpUNo67VOY66M';
     this.socket = {};
     this.settings = {
         "port": 8080
         , "host": "localhost"
     };
     this.data = {
-        "users": {
+        "token": ""
+        , "users": {
         }
     };
     
@@ -121,7 +121,7 @@ var NexinationBot = new function() {
         );
         return false;
     };
-    this.dataFileAction = function(action) {
+    this.dataFileAction = function(action, runAfter) {
         var dataFile = 'chatdata';
         if(action === 'load') {
             fs.readFile(
@@ -129,6 +129,9 @@ var NexinationBot = new function() {
                 , function(error, data) {
                     if(!error) {
                         main.data = JSON.parse(data);
+                        if(typeof runAfter === 'function') {
+                            runAfter();
+                        };
                     };
                 }
             );
@@ -140,18 +143,17 @@ var NexinationBot = new function() {
                 , function(error, data) {
                     if(error) {
                         console.log(error);
+                    }
+                    else if(typeof runAfter === 'function') {
+                        runAfter();
                     };
                 }
             );
         }
         return false;
     };
-    this.__construct = function() {
-        main.telegram = new tbl.TelegramBotLib({"botToken": main.token});
-        
-        main.JsonRpc = new JsonRpc();
-        
-        main.dataFileAction('load');
+    this.runAfterLoad = function() {
+        main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
         
         main.telegram.on('start', main.register);
         main.telegram.on('help', main.register);
@@ -159,6 +161,12 @@ var NexinationBot = new function() {
         main.telegram.on('default', main.messageSend);
         
         main.connectSocket();
+        return false;
+    };
+    this.__construct = function() {
+        main.JsonRpc = new JsonRpc();
+        
+        main.dataFileAction('load', main.runAfterLoad);
     };
     this.__construct();
 };

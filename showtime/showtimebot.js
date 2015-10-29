@@ -6,10 +6,10 @@ var ShowTimeBot = new function() {
     var main = this;
     this.telegram = {};
     this.data = {
-        "users": {}
+        "token": ""
+        , "users": {}
         , "showStore": {}
     };
-    this.token = "132491480:AAESDrExVomueKHt4m88ZpimXJ9QIvZZMvE";
     this.chatCheck = function(chatId) {
         if(!main.data.users.hasOwnProperty(chatId)) {
             main.data.users[chatId] = {};
@@ -18,44 +18,43 @@ var ShowTimeBot = new function() {
         return main.data.users[chatId];
     };
     this.start = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         main.telegram.apiCall(
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated show time bot!\n"
+                , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated stock bot!\n"
+                    + "It uses yahoo finance and it alerts you on a 0.1% change in the stock, be it up or down.\n"
                     + "Please check /help before you try to use the bot."
             }
         );
         return false;
     };
     this.help = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         main.telegram.apiCall(
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "This bot uses TVmaze API: http://www.tvmaze.com/api.\n"
+                , "encodedMessage": "This bot uses yahoo finance.\n"
+                    + "To use this stock alert bot,\n"
+                    + "find stock id's on yahoo like so: http://finance.yahoo.com/q?s=eurusd=x\n"
+                    + "The stock id is the name in the brackets,\n"
+                    + "or part of the url like \"(EURUSD=X)\".\n\n"
                     + "Command list:\n"
                     + "/start - Greeting message\n"
                     + "/help - Show this help window\n"
-                    + "/settings - Show your added shows and other info\n"
-                    + "/showadd - Add a show to alerts\n"
-                    + "/showremove - Remove a show from alerts\n"
-                    + "/showtick - Mark an episode as watched\n"
-                    + "/showmissing - Display shows you are behind on\n"
-                    + "/search - Search for a show ID\n"
+                    + "/settings - Show your added stocks and other info\n"
+                    + "/stockadd - Add a stock to alerts\n"
+                    + "/stockremove - Remove a stock from alerts\n"
                     + "/cancel - Cancels any ongoing action\n"
             }
         );
         return false;
     };
     this.settings = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         var textSettings = '';
@@ -74,7 +73,6 @@ var ShowTimeBot = new function() {
         return false;
     };
     this.stockAdd = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         if(result.message.text.substr(0, 1) === '/') {
@@ -109,7 +107,6 @@ var ShowTimeBot = new function() {
         return false;
     };
     this.stockRemove = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         if(result.message.text.substr(0, 1) === '/') {
@@ -210,9 +207,6 @@ var ShowTimeBot = new function() {
         return false;
     };
     this.alarmUsers = function(stockId) {
-        //var now = new Date();
-        //var utcHours = now.getUTCHours();
-        //if(utcHours < 20 && utcHours > 10) {
         for(chatId in main.data.users) {
             if(main.data.users[chatId].hasOwnProperty('stocks')) {
                 if(main.data.users[chatId].stocks.indexOf(stockId) !== -1) {
@@ -226,17 +220,19 @@ var ShowTimeBot = new function() {
                 };
             };
         };
-        //};
         return false;
     };
-    this.dataFileAction = function(action) {
-        var dataFile = 'stockdata';
+    this.dataFileAction = function(action, runAfter) {
+        var dataFile = 'showdata';
         if(action === 'load') {
             fs.readFile(
                 dataFile
                 , function(error, data) {
                     if(!error) {
                         main.data = JSON.parse(data);
+                        if(typeof runAfter === 'function') {
+                            runAfter();
+                        };
                     };
                 }
             );
@@ -248,16 +244,17 @@ var ShowTimeBot = new function() {
                 , function(error, data) {
                     if(error) {
                         console.log(error);
+                    }
+                    else if(typeof runAfter === 'function') {
+                        runAfter();
                     };
                 }
             );
         }
         return false;
     };
-    this.__construct = function() {
-        main.telegram = new tbl.TelegramBotLib({"botToken": main.token});
-        
-        main.dataFileAction('load');
+    this.runAfterLoad = function() {
+        main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
         
         main.telegram.on('start', main.start);
         main.telegram.on('help', main.help);
@@ -268,6 +265,12 @@ var ShowTimeBot = new function() {
         
         main.getStockUpdates();
         setInterval(main.getStockUpdates, (5*60*1000));
+        
+        return false;
+    };
+    this.__construct = function() {
+        main.dataFileAction('load', main.runAfterLoad);
+        
     };
     this.__construct();
 };

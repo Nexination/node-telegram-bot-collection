@@ -1,15 +1,15 @@
 var https = require('https');
 var fs = require('fs');
-var tbl = require('../node-telegram-bot-api/TelegramBotLib');
+var tbl = require('telegram-bot-api');
 
 var StockAlertBot = new function() {
     var main = this;
     this.telegram = {};
     this.data = {
-        "users": {}
+        "token": ""
+        , "users": {}
         , "stockStore": {}
     };
-    this.token = "122535815:AAEQvenU04SEAzY4MRarhC8jlmeazP8Q2LU";
     this.chatCheck = function(chatId) {
         if(!main.data.users.hasOwnProperty(chatId)) {
             main.data.users[chatId] = {};
@@ -18,7 +18,6 @@ var StockAlertBot = new function() {
         return main.data.users[chatId];
     };
     this.start = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         main.telegram.apiCall(
@@ -33,7 +32,6 @@ var StockAlertBot = new function() {
         return false;
     };
     this.help = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         main.telegram.apiCall(
@@ -57,7 +55,6 @@ var StockAlertBot = new function() {
         return false;
     };
     this.settings = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         var textSettings = '';
@@ -76,7 +73,6 @@ var StockAlertBot = new function() {
         return false;
     };
     this.stockAdd = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         if(result.message.text.substr(0, 1) === '/') {
@@ -111,7 +107,6 @@ var StockAlertBot = new function() {
         return false;
     };
     this.stockRemove = function(result) {
-        // Very important to use/edit chat settings
         var chatSettings = main.chatCheck(result.message.chat.id);
         
         if(result.message.text.substr(0, 1) === '/') {
@@ -212,9 +207,6 @@ var StockAlertBot = new function() {
         return false;
     };
     this.alarmUsers = function(stockId) {
-        //var now = new Date();
-        //var utcHours = now.getUTCHours();
-        //if(utcHours < 20 && utcHours > 10) {
         for(chatId in main.data.users) {
             if(main.data.users[chatId].hasOwnProperty('stocks')) {
                 if(main.data.users[chatId].stocks.indexOf(stockId) !== -1) {
@@ -228,10 +220,9 @@ var StockAlertBot = new function() {
                 };
             };
         };
-        //};
         return false;
     };
-    this.dataFileAction = function(action) {
+    this.dataFileAction = function(action, runAfter) {
         var dataFile = 'stockdata';
         if(action === 'load') {
             fs.readFile(
@@ -239,6 +230,9 @@ var StockAlertBot = new function() {
                 , function(error, data) {
                     if(!error) {
                         main.data = JSON.parse(data);
+                        if(typeof runAfter === 'function') {
+                            runAfter();
+                        };
                     };
                 }
             );
@@ -250,16 +244,17 @@ var StockAlertBot = new function() {
                 , function(error, data) {
                     if(error) {
                         console.log(error);
+                    }
+                    else if(typeof runAfter === 'function') {
+                        runAfter();
                     };
                 }
             );
         }
         return false;
     };
-    this.__construct = function() {
-        main.telegram = new tbl.TelegramBotLib({"botToken": main.token});
-        
-        main.dataFileAction('load');
+    this.runAfterLoad = function() {
+        main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
         
         main.telegram.on('start', main.start);
         main.telegram.on('help', main.help);
@@ -270,6 +265,12 @@ var StockAlertBot = new function() {
         
         main.getStockUpdates();
         setInterval(main.getStockUpdates, (5*60*1000));
+        
+        return false;
+    };
+    this.__construct = function() {
+        main.dataFileAction('load', main.runAfterLoad);
+        
     };
     this.__construct();
 };
