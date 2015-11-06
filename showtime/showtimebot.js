@@ -1,14 +1,27 @@
 var https = require('https');
+var http = require('http');
 var fs = require('fs');
 var tbl = require('telegram-bot-api');
 
 var ShowTimeBot = new function() {
     var main = this;
     this.telegram = {};
+    this.tvmazeApi = {
+        "url": "http://api.tvmaze.com"
+        , "show": "/shows/{showId}"
+        , "episode": "/episodes/{episodeId}"
+        , "search": "/search/shows?q={query}"
+        , "searchId": "/lookup/shows?tvrage={searchId}&thetvdb={searchId}"
+        , "schedule": "/schedule/?country={countryCode}"
+    };
     this.data = {
         "token": ""
         , "users": {}
         , "showStore": {}
+    };
+    this.temp = {
+        "searchStore": {}
+        , "notifyStore": {}
     };
     this.chatCheck = function(chatId) {
         if(!main.data.users.hasOwnProperty(chatId)) {
@@ -17,6 +30,26 @@ var ShowTimeBot = new function() {
         
         return main.data.users[chatId];
     };
+    this.zeroPad = function(toBePadded, padLength) {
+        toBePadded = toBePadded + '';
+        for(var i = toBePadded.length; i < padLength; i += 1) {
+            toBePadded = '0' + toBePadded;
+        };
+        return toBePadded;
+    };
+    this.callApi = function(api, apiData, result, callback) {
+        var apiCall = main.tvmazeApi.url + main.tvmazeApi[api].replace(/{(\w+)}/gi, function(match, capture) {
+            return apiData[capture];
+        });
+        http.get(apiCall, function(response) {
+            callback(result, response);
+        }).on('error', function(e) {
+            console.error(e);
+        });
+        console.log(apiCall);
+        
+        return false;
+    };
     this.start = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
         
@@ -24,8 +57,9 @@ var ShowTimeBot = new function() {
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated stock bot!\n"
-                    + "It uses yahoo finance and it alerts you on a 0.1% change in the stock, be it up or down.\n"
+                , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated show bot!\n"
+                    + "It uses the TV Maze API and it alerts you to new episodes of shows you have subscribed to.\n"
+                    + "It also allows you to manually check for shows you are behind on.\n"
                     + "Please check /help before you try to use the bot."
             }
         );
@@ -38,17 +72,19 @@ var ShowTimeBot = new function() {
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "This bot uses yahoo finance.\n"
-                    + "To use this stock alert bot,\n"
-                    + "find stock id's on yahoo like so: http://finance.yahoo.com/q?s=eurusd=x\n"
-                    + "The stock id is the name in the brackets,\n"
-                    + "or part of the url like \"(EURUSD=X)\".\n\n"
+                , "encodedMessage": "This bot uses TV Maze API.\n"
+                    + "To use this show alert bot,\n"
+                    + "type /showsearch to find a show"
+                    + "and then type /showadd to add a show by id."
                     + "Command list:\n"
                     + "/start - Greeting message\n"
                     + "/help - Show this help window\n"
-                    + "/settings - Show your added stocks and other info\n"
-                    + "/stockadd - Add a stock to alerts\n"
-                    + "/stockremove - Remove a stock from alerts\n"
+                    + "/settings - Show your added shows and other info\n"
+                    + "/showadd - Add a show via id to alerts\n"
+                    + "/showremove - Remove a show via id from alerts\n"
+                    + "/showtick - Tick an episode as viewed via id\n"
+                    + "/showmissing - Show the episodes you are behind on\n"
+                    + "/showsearch - Search for a show by name or id\n"
                     + "/cancel - Cancels any ongoing action\n"
             }
         );
@@ -57,94 +93,348 @@ var ShowTimeBot = new function() {
     this.settings = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
         
-        var textSettings = '';
-        for(var i in chatSettings) {
-            textSettings += '- ' + i + '\n' + JSON.stringify(chatSettings[i]);
-        };
-        
         main.telegram.apiCall(
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
                 , "encodedMessage": "Your settings: \n"
-                    + (textSettings !== '' ? textSettings : 'none')
+                    + JSON.stringify(chatSettings)
             }
         );
         return false;
     };
-    this.stockAdd = function(result) {
-        var chatSettings = main.chatCheck(result.message.chat.id);
-        
+    this.showAdd = function(result) {
         if(result.message.text.substr(0, 1) === '/') {
-            main.telegram.deferAction(result.message.chat.id, main.stockAdd);
+            main.telegram.deferAction(result.message.chat.id, main.showAdd);
             main.telegram.apiCall(
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input the stock id you wish to add:"
+                    , "encodedMessage": "Please input show id(s) you want to watch:"
                 }
             );
         }
         else {
-            var stock = result.message.text.toUpperCase();
-            if(!chatSettings.hasOwnProperty('stocks')) {
-                chatSettings.stocks = [];
+            var idList = result.message.text.split('\n');
+            for(var i = 0; i < idList.length; i += 1) {
+                result.searchCount = idList.length;
+                main.callApi('show', {"showId": idList[i]}, result, main.showAddHandler);
             };
-            chatSettings.stocks.push(stock);
-            if(!main.data.stockStore.hasOwnProperty(stock)) {
-                main.data.stockStore[stock] = 0;
-            };
-            main.telegram.apiCall(
-                'sendMessage'
-                , {
-                    "chatId": result.message.chat.id
-                    , "encodedMessage": "Stock " + stock + " confirmed."
-                }
-            );
-            main.dataFileAction('save');
         };
-        
         return false;
     };
-    this.stockRemove = function(result) {
-        var chatSettings = main.chatCheck(result.message.chat.id);
-        
+    this.showAddHandler = function(result, response) {
+        var data = '';
+        response.on('data', function(chunk) {
+            data += chunk;
+        });
+        response.on('end', function() {
+            console.log(response.statusCode);
+            if(response.statusCode === 200 && data) {
+                var json = JSON.parse(data);
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": json.name + " added"
+                    }
+                );
+                //json.id + json.name + json.status + json._links.previousepisode.href
+                var latestEpisodeId = json._links.previousepisode.href.split('/');
+                if(!main.data.showStore.hasOwnProperty(json.id)) {
+                    main.data.showStore[json.id] = {
+                        "name": json.name
+                        , "status": json.status
+                        , "episodeCount": 0
+                        , "users": {}
+                    };
+                    result.showId = json.id;
+                    main.callApi(
+                        'episode'
+                        , {"episodeId": latestEpisodeId[latestEpisodeId.length - 1]}
+                        , result
+                        , main.showAddEpisodeHandler
+                    );
+                };
+                if(!main.data.users.hasOwnProperty(result.message.chat.id)) {
+                    main.data.users[result.message.chat.id] = {};
+                };
+                main.data.showStore[json.id].users[result.message.chat.id] = true;
+                main.data.users[result.message.chat.id][json.id] = {"name": json.name, "episodeCount": 0};
+                console.log(main.data.users);
+                console.log(main.data.showStore);
+            }
+            else {
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": "Show not found."
+                    }
+                );
+            };
+            main.dataFileAction('save');
+        });
+        return false;
+    };
+    this.showAddEpisodeHandler = function(result, response) {
+        var data = '';
+        response.on('data', function(chunk) {
+            data += chunk;
+        });
+        response.on('end', function() {
+            console.log(response.statusCode);
+            if(response.statusCode === 200 && data) {
+                var json = JSON.parse(data);
+                main.data.showStore[result.showId].episodeCount = parseInt(json.season + main.zeroPad(json.number, 2));
+            };
+            console.log(main.data.showStore[result.showId]);
+            main.dataFileAction('save');
+        });
+        return false;
+    };
+    this.showRemove = function(result) {
         if(result.message.text.substr(0, 1) === '/') {
-            main.telegram.deferAction(result.message.chat.id, main.stockRemove);
+            main.telegram.deferAction(result.message.chat.id, main.showRemove);
             main.telegram.apiCall(
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input the stock id you wish to remove:"
+                    , "encodedMessage": "Please input show id(s) you want to remove:"
+                    
                 }
             );
         }
         else {
-            if(chatSettings.hasOwnProperty('stocks')) {
-                var stockPlace = chatSettings.stocks.indexOf(result.message.text.toUpperCase());
-                if(stockPlace !== -1) {
-                    var removedItem = chatSettings.stocks.splice(stockPlace, 1);
+            var showList = result.message.text.split('\n');
+            var chatSettings = main.chatCheck(result.message.chat.id);
+            
+            for(var i = 0; i < showList; i += 1) {
+                var showId = showList[i];
+                console.log(main.data.users);
+                console.log(main.data.showStore);
+                if(chatSettings.hasOwnProperty(showId)) {
+                    var showName = chatSettings[showId].name;
+                    delete main.data.showStore[showId].users[result.message.chat.id];
+                    delete chatSettings[showId];
+                    
                     main.telegram.apiCall(
                         'sendMessage'
                         , {
                             "chatId": result.message.chat.id
-                            , "encodedMessage": "Stock " + JSON.stringify(removedItem) + " removed."
+                            , "encodedMessage": showName + " removed."
+                            
                         }
                     );
-                    main.dataFileAction('save');
                 }
                 else {
                     main.telegram.apiCall(
                         'sendMessage'
                         , {
                             "chatId": result.message.chat.id
-                            , "encodedMessage": "Stock " + result.message.text + " not found."
+                            , "encodedMessage": showId + " not found."
+                            
                         }
                     );
                 };
+                console.log(main.data.users);
+                console.log(main.data.showStore);
+            };
+        };
+        main.dataFileAction('save');
+        return false;
+    };
+    this.showTick = function(result) {
+        if(result.message.text.substr(0, 1) === '/') {
+            main.telegram.deferAction(result.message.chat.id, main.showTick);
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": "Please input an id of a show, a space and a . or a season+episode number:\n"
+                        + "Example of season 3 episode 5: 305"
+                    
+                }
+            );
+        }
+        else {
+            var showData = result.message.text.split(' ');
+            if(isNaN(showData[0]) || showData.length < 2) {
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": "Wrong format."
+                        
+                    }
+                );
+            }
+            else if(main.data.users[result.message.chat.id].hasOwnProperty(showData[0])) {
+                if(showData[1] === '.') {
+                    main.data.users[result.message.chat.id][showData[0]].episodeCount += 1;
+                }
+                else {
+                    main.data.users[result.message.chat.id][showData[0]].episodeCount = parseInt(showData[1]);
+                };
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": main.data.users[result.message.chat.id][showData[0]].name + " updated to " + main.data.users[result.message.chat.id][showData[0]].episodeCount
+                        
+                    }
+                );
+            };
+        };
+        main.dataFileAction('save');
+        return false;
+    };
+    this.showMissing = function(result) {
+        var chatSettings = main.chatCheck(result.message.chat.id);
+        var behindOnShows = '';
+        
+        for(var i in chatSettings) {
+            console.log(i + main.data.showStore[i]);
+            if(chatSettings[i].episodeCount < main.data.showStore[i].episodeCount) {
+                behindOnShows += chatSettings[i].name + ' by ' + (main.data.showStore[i].episodeCount - chatSettings[i].episodeCount) + ' episodes\n';
             };
         };
         
+        main.telegram.apiCall(
+            'sendMessage'
+            , {
+                "chatId": result.message.chat.id
+                , "encodedMessage": "You are behind on these shows:\n" + behindOnShows
+            }
+        );
+        
+        return false;
+    };
+    this.showSearch = function(result) {
+        if(result.message.text.substr(0, 1) === '/') {
+            main.telegram.deferAction(result.message.chat.id, main.showSearch);
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": "Please input part of a show name or id(s) from TvRage or TheTvDB:"
+                }
+            );
+        }
+        else {
+            var text = result.message.text;
+            var idList = text.split('\n');
+            if(isNaN(idList[0])) {
+                main.callApi('search', {"query": text}, result, main.showSearchHandler);
+            }
+            else {
+                for(var i = 0; i < idList.length; i += 1) {
+                    result.searchCount = idList.length;
+                    main.callApi('searchId', {"searchId": idList[i]}, result, main.showSearchHandler);
+                };
+            };
+        };
+        return false;
+    };
+    this.showSearchHandler = function(result, response) {
+        var data = '';
+        response.on('data', function(chunk) {
+            data += chunk;
+        });
+        response.on('end', function() {
+            console.log(response.statusCode);
+            if(data) {
+                var json = JSON.parse(data);
+                var output = '';
+                for(var i = 0; i < json.length; i += 1) {
+                    output += json[i].show.id + ' ' + json[i].show.name + '\n';
+                };
+                console.log(output);
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": output
+                    }
+                );
+            }
+            else if(response.statusCode === 301) {
+                var newUrl = response.headers.location.split('/');
+                if(!main.temp.searchStore.hasOwnProperty(result.message.chat.id)) {
+                    main.temp.searchStore[result.message.chat.id] = [];
+                };
+                main.temp.searchStore[result.message.chat.id].push(newUrl[newUrl.length - 1]);
+                if(main.temp.searchStore[result.message.chat.id].length === result.searchCount) {
+                    var output = 'New show id(s):\n';
+                    for(var i = 0; i < main.temp.searchStore[result.message.chat.id].length; i += 1) {
+                        output += main.temp.searchStore[result.message.chat.id][i] + '\n';
+                    };
+                    main.temp.searchStore[result.message.chat.id] = [];
+                    console.log(main.temp.searchStore);
+                    main.telegram.apiCall(
+                        'sendMessage'
+                        , {
+                            "chatId": result.message.chat.id
+                            , "encodedMessage": output
+                        }
+                    );
+                };
+            }
+            else if(response.statusCode === 404) {
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": "Show did not exist in TvRage or TheTvDB."
+                    }
+                );
+            };
+        });
+        return false;
+    };
+    this.getShowUpdates = function() {
+        var countries = [
+            "US"
+            , "GB"
+        ];
+        
+        for(var i = 0; i < countries.length; i += 1) {
+            main.callApi('schedule', {"countryCode": countries[i]}, {}, main.getShowUpdatesHandler);
+        };
+        return false;
+    };
+    this.getShowUpdatesHandler = function(result, response) {
+        var data = '';
+        response.on('data', function(chunk) {
+            data += chunk;
+        });
+        response.on('end', function() {
+            var json = JSON.parse(data);
+            for(var i = 0; i < json.length; i += 1) {
+                var showId = json[i].show.id;
+                if(main.data.showStore.hasOwnProperty(showId)) {
+                    var showUsers = main.data.showStore[showId].users;
+                    main.data.showStore[showId].episodeCount = parseInt(json[i].season + main.zeroPad(json[i].number, 2));
+                    for(var j in showUsers) {
+                        if(!main.temp.notifyStore.hasOwnProperty(j)) {
+                            main.temp.notifyStore[j] = '';
+                        };
+                        main.temp.notifyStore[j] += json[i].show.name + '\n';
+                    };
+                };
+            };
+            for(var i in main.temp.notifyStore) {
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": i
+                        , "encodedMessage": "New episodes:\n" + main.temp.notifyStore[i]
+                    }
+                );
+                delete main.temp.notifyStore[i];
+            };
+            console.log(main.temp);
+        });
         return false;
     };
     this.deferredActionCancel = function(result) {
@@ -156,70 +446,6 @@ var ShowTimeBot = new function() {
                 , "encodedMessage": "Action cancelled."
             }
         );
-        return false;
-    };
-    this.getStockUpdates = function() {
-        var callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
-        var stocksToBeCounted = '';
-        
-        for(var stock in main.data.stockStore) {
-            stocksToBeCounted += ',%22' + stock + '%22';
-        };
-        callUrl = callUrl.replace('${target}', stocksToBeCounted);
-        
-        https.get(callUrl, main.stockDataHandler).on('error', function(e) {
-            console.error(e);
-        });
-        return false;
-    };
-    this.stockDataHandler = function(resource) {
-        var data = '';
-        resource.on('data', function(chunk) {
-            data += chunk;
-        });
-        resource.on('end', function() {
-            console.log(data);
-            var jsonData = {};
-            try {
-                jsonData = JSON.parse(data);
-            } catch(error) {
-                console.log(error);
-            };
-            if(jsonData.hasOwnProperty('query')) {
-                if(jsonData.query.hasOwnProperty('result')) {
-                    for(var i = 0; i < jsonData.query.results.quote.length; i += 1) {
-                        var quote = jsonData.query.results.quote[i];
-                        if(quote.Symbol !== 'YHOO') {
-                            if(quote.PercentChange !== null) {
-                                var currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
-                                if(main.data.stockStore[quote.Symbol] !== currentQuote) {
-                                    console.log(quote.Symbol + ' ' + currentQuote);
-                                    main.data.stockStore[quote.Symbol] = currentQuote;
-                                    main.alarmUsers(quote.Symbol);
-                                    main.dataFileAction('save');
-                                };
-                            };
-                        };
-                    };
-                };
-            };
-        });
-        return false;
-    };
-    this.alarmUsers = function(stockId) {
-        for(chatId in main.data.users) {
-            if(main.data.users[chatId].hasOwnProperty('stocks')) {
-                if(main.data.users[chatId].stocks.indexOf(stockId) !== -1) {
-                    main.telegram.apiCall(
-                        'sendMessage'
-                        , {
-                            "chatId": chatId
-                            , "encodedMessage": "!ALERT! " + stockId + " has changed to " + main.data.stockStore[stockId]
-                        }
-                    );
-                };
-            };
-        };
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
@@ -259,18 +485,20 @@ var ShowTimeBot = new function() {
         main.telegram.on('start', main.start);
         main.telegram.on('help', main.help);
         main.telegram.on('settings', main.settings);
-        main.telegram.on('stockadd', main.stockAdd);
-        main.telegram.on('stockremove', main.stockRemove);
+        main.telegram.on('showadd', main.showAdd);
+        main.telegram.on('showremove', main.showRemove);
+        main.telegram.on('showtick', main.showTick);
+        main.telegram.on('showmissing', main.showMissing);
+        main.telegram.on('showsearch', main.showSearch);
         main.telegram.on('cancel', main.deferredActionCancel);
         
-        main.getStockUpdates();
-        setInterval(main.getStockUpdates, (5*60*1000));
+        main.getShowUpdates();
+        setInterval(main.getShowUpdates, (8*60*60*1000));
         
         return false;
     };
     this.__construct = function() {
         main.dataFileAction('load', main.runAfterLoad);
-        
     };
     this.__construct();
 };
