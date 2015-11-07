@@ -16,12 +16,30 @@ var ShowTimeBot = new function() {
     };
     this.data = {
         "token": ""
-        , "users": {}
-        , "showStore": {}
+        , "users": {
+            "90385038": {
+                "620": {
+                    "name": "The Last Man On Earth"
+                    , "episodeCount": 111
+                    , "status": "Running"
+                }
+            }
+        }
+        , "showStore": {
+            "1": {
+                "name": "Under the Dome"
+                , "status": "Ended"
+                , "episodeCount": 313
+                , "users": {
+                    "90385038": true
+                }
+            }
+        }
     };
     this.temp = {
         "searchStore": {}
         , "notifyStore": {}
+        , "episodeUpdateCount": 0
     };
     this.chatCheck = function(chatId) {
         if(!main.data.users.hasOwnProperty(chatId)) {
@@ -93,12 +111,17 @@ var ShowTimeBot = new function() {
     this.settings = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
         
+        var settings = '';
+        for(var i in chatSettings) {
+            settings += i + ': "' + chatSettings[i].name + '" E:' + chatSettings[i].episodeCount + ' (' + chatSettings[i].status + ')\n'
+        };
+        
         main.telegram.apiCall(
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
                 , "encodedMessage": "Your settings: \n"
-                    + JSON.stringify(chatSettings)
+                    + settings
             }
         );
         return false;
@@ -116,81 +139,97 @@ var ShowTimeBot = new function() {
         }
         else {
             var idList = result.message.text.split('\n');
+            result.searchCount = idList.length;
             for(var i = 0; i < idList.length; i += 1) {
-                result.searchCount = idList.length;
                 main.callApi('show', {"showId": idList[i]}, result, main.showAddHandler);
             };
         };
         return false;
     };
     this.showAddHandler = function(result, response) {
+        var chatSettings = main.chatCheck(result.message.chat.id);
+        
         var data = '';
         response.on('data', function(chunk) {
             data += chunk;
         });
         response.on('end', function() {
-            console.log(response.statusCode);
+            var message = '';
             if(response.statusCode === 200 && data) {
                 var json = JSON.parse(data);
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": json.name + " added"
+                var resultFake = {
+                    "showId": json.id
+                    , "searchCount": result.searchCount
+                    , "message": {
+                        "chat": {
+                            "id": result.message.chat.id
+                        }
                     }
-                );
-                //json.id + json.name + json.status + json._links.previousepisode.href
+                };
                 var latestEpisodeId = json._links.previousepisode.href.split('/');
+                
                 if(!main.data.showStore.hasOwnProperty(json.id)) {
                     main.data.showStore[json.id] = {
-                        "name": json.name
-                        , "status": json.status
-                        , "episodeCount": 0
+                        "episodeCount": 0
                         , "users": {}
                     };
-                    result.showId = json.id;
-                    main.callApi(
-                        'episode'
-                        , {"episodeId": latestEpisodeId[latestEpisodeId.length - 1]}
-                        , result
-                        , main.showAddEpisodeHandler
-                    );
                 };
-                if(!main.data.users.hasOwnProperty(result.message.chat.id)) {
-                    main.data.users[result.message.chat.id] = {};
-                };
+                main.data.showStore[json.id].name = json.name;
+                main.data.showStore[json.id].status = json.status;
+                main.callApi(
+                    "episode"
+                    , {"episodeId": latestEpisodeId[latestEpisodeId.length - 1]}
+                    , resultFake
+                    , main.showAddEpisodeHandler
+                );
+                
                 main.data.showStore[json.id].users[result.message.chat.id] = true;
-                main.data.users[result.message.chat.id][json.id] = {"name": json.name, "episodeCount": 0};
-                console.log(main.data.users);
-                console.log(main.data.showStore);
+                if(!chatSettings.hasOwnProperty(json.id)) {
+                    chatSettings[json.id] = {
+                        "episodeCount": 0
+                    };
+                };
+                chatSettings[json.id].name = json.name;
+                chatSettings[json.id].status = json.status;
+                
+                message = json.name + ' added';
             }
             else {
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": "Show not found."
-                    }
-                );
+                message = 'Show not found.';
             };
-            main.dataFileAction('save');
+            
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": message
+                }
+            );
+            console.log(result.message.chat.id + ': ' + message);
         });
         return false;
     };
     this.showAddEpisodeHandler = function(result, response) {
+        var chatSettings = main.chatCheck(result.message.chat.id);
+        
         var data = '';
+        main.temp.episodeUpdateCount += 1;
         response.on('data', function(chunk) {
             data += chunk;
         });
         response.on('end', function() {
-            console.log(response.statusCode);
             if(response.statusCode === 200 && data) {
                 var json = JSON.parse(data);
                 main.data.showStore[result.showId].episodeCount = parseInt(json.season + main.zeroPad(json.number, 2));
             };
-            console.log(main.data.showStore[result.showId]);
-            main.dataFileAction('save');
+            if(result.searchCount <= main.temp.episodeUpdateCount) {
+                main.dataFileAction('save');
+                console.log('saved');
+                main.temp.episodeUpdateCount = 0;
+            };
+            console.log('Episode update: ' + result.showId + '|' + main.data.showStore[result.showId].episodeCount);
         });
+        
         return false;
     };
     this.showRemove = function(result) {
@@ -209,42 +248,38 @@ var ShowTimeBot = new function() {
             var showList = result.message.text.split('\n');
             var chatSettings = main.chatCheck(result.message.chat.id);
             
-            for(var i = 0; i < showList; i += 1) {
+            for(var i = 0; i < showList.length; i += 1) {
                 var showId = showList[i];
-                console.log(main.data.users);
-                console.log(main.data.showStore);
+                var message = '';
                 if(chatSettings.hasOwnProperty(showId)) {
                     var showName = chatSettings[showId].name;
                     delete main.data.showStore[showId].users[result.message.chat.id];
                     delete chatSettings[showId];
                     
-                    main.telegram.apiCall(
-                        'sendMessage'
-                        , {
-                            "chatId": result.message.chat.id
-                            , "encodedMessage": showName + " removed."
-                            
-                        }
-                    );
+                    message = showName + ' removed.';
                 }
                 else {
-                    main.telegram.apiCall(
-                        'sendMessage'
-                        , {
-                            "chatId": result.message.chat.id
-                            , "encodedMessage": showId + " not found."
-                            
-                        }
-                    );
+                    message = showId + ' not found.';
                 };
-                console.log(main.data.users);
-                console.log(main.data.showStore);
+                
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": message
+                        
+                    }
+                );
+                console.log(result.message.chat.id + ': ' + message);
             };
         };
         main.dataFileAction('save');
+        console.log('saved');
         return false;
     };
     this.showTick = function(result) {
+        var chatSettings = main.chatCheck(result.message.chat.id);
+        
         if(result.message.text.substr(0, 1) === '/') {
             main.telegram.deferAction(result.message.chat.id, main.showTick);
             main.telegram.apiCall(
@@ -252,41 +287,38 @@ var ShowTimeBot = new function() {
                 , {
                     "chatId": result.message.chat.id
                     , "encodedMessage": "Please input an id of a show, a space and a . or a season+episode number:\n"
-                        + "Example of season 3 episode 5: 305"
-                    
                 }
             );
         }
         else {
             var showData = result.message.text.split(' ');
+            var message = '';
+            
             if(isNaN(showData[0]) || showData.length < 2) {
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": "Wrong format."
-                        
-                    }
-                );
+                message = 'Wrong format.';
             }
-            else if(main.data.users[result.message.chat.id].hasOwnProperty(showData[0])) {
+            else if(chatSettings.hasOwnProperty(showData[0])) {
                 if(showData[1] === '.') {
-                    main.data.users[result.message.chat.id][showData[0]].episodeCount += 1;
+                    chatSettings[showData[0]].episodeCount += 1;
                 }
                 else {
-                    main.data.users[result.message.chat.id][showData[0]].episodeCount = parseInt(showData[1]);
+                    chatSettings[showData[0]].episodeCount = parseInt(showData[1]);
                 };
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": main.data.users[result.message.chat.id][showData[0]].name + " updated to " + main.data.users[result.message.chat.id][showData[0]].episodeCount
-                        
-                    }
-                );
+                message = chatSettings[showData[0]].name + " updated to " + chatSettings[showData[0]].episodeCount;
             };
+            
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": message
+                    
+                }
+            );
+            console.log(result.message.chat.id + ': ' + message);
         };
         main.dataFileAction('save');
+        console.log('saved');
         return false;
     };
     this.showMissing = function(result) {
@@ -300,13 +332,15 @@ var ShowTimeBot = new function() {
             };
         };
         
+        var message = 'You are behind on these shows:\n' + behindOnShows;
         main.telegram.apiCall(
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "You are behind on these shows:\n" + behindOnShows
+                , "encodedMessage": message
             }
         );
+        console.log(result.message.chat.id + ': ' + message);
         
         return false;
     };
@@ -328,8 +362,8 @@ var ShowTimeBot = new function() {
                 main.callApi('search', {"query": text}, result, main.showSearchHandler);
             }
             else {
+                result.searchCount = idList.length;
                 for(var i = 0; i < idList.length; i += 1) {
-                    result.searchCount = idList.length;
                     main.callApi('searchId', {"searchId": idList[i]}, result, main.showSearchHandler);
                 };
             };
@@ -342,21 +376,12 @@ var ShowTimeBot = new function() {
             data += chunk;
         });
         response.on('end', function() {
-            console.log(response.statusCode);
+            var message = '';
             if(data) {
                 var json = JSON.parse(data);
-                var output = '';
                 for(var i = 0; i < json.length; i += 1) {
-                    output += json[i].show.id + ' ' + json[i].show.name + '\n';
+                    message += json[i].show.id + ' ' + json[i].show.name + ' (' + json[i].show.premiered.substr(0, 4) + ')\n';
                 };
-                console.log(output);
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": output
-                    }
-                );
             }
             else if(response.statusCode === 301) {
                 var newUrl = response.headers.location.split('/');
@@ -365,30 +390,27 @@ var ShowTimeBot = new function() {
                 };
                 main.temp.searchStore[result.message.chat.id].push(newUrl[newUrl.length - 1]);
                 if(main.temp.searchStore[result.message.chat.id].length === result.searchCount) {
-                    var output = 'New show id(s):\n';
+                    message = 'New show id(s):\n';
                     for(var i = 0; i < main.temp.searchStore[result.message.chat.id].length; i += 1) {
-                        output += main.temp.searchStore[result.message.chat.id][i] + '\n';
+                        message += main.temp.searchStore[result.message.chat.id][i] + '\n';
                     };
                     main.temp.searchStore[result.message.chat.id] = [];
+                    console.log('SearchUpdate');
                     console.log(main.temp.searchStore);
-                    main.telegram.apiCall(
-                        'sendMessage'
-                        , {
-                            "chatId": result.message.chat.id
-                            , "encodedMessage": output
-                        }
-                    );
                 };
             }
             else if(response.statusCode === 404) {
-                main.telegram.apiCall(
-                    'sendMessage'
-                    , {
-                        "chatId": result.message.chat.id
-                        , "encodedMessage": "Show did not exist in TvRage or TheTvDB."
-                    }
-                );
+                message = 'Show did not exist in TvRage or TheTvDB.';
             };
+            
+            main.telegram.apiCall(
+                'sendMessage'
+                , {
+                    "chatId": result.message.chat.id
+                    , "encodedMessage": message
+                }
+            );
+            console.log(result.message.chat.id + ': ' + message);
         });
         return false;
     };
@@ -399,7 +421,7 @@ var ShowTimeBot = new function() {
         ];
         
         for(var i = 0; i < countries.length; i += 1) {
-            main.callApi('schedule', {"countryCode": countries[i]}, {}, main.getShowUpdatesHandler);
+            main.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, main.getShowUpdatesHandler);
         };
         return false;
     };
@@ -415,10 +437,15 @@ var ShowTimeBot = new function() {
                 if(main.data.showStore.hasOwnProperty(showId)) {
                     var showUsers = main.data.showStore[showId].users;
                     main.data.showStore[showId].episodeCount = parseInt(json[i].season + main.zeroPad(json[i].number, 2));
+                    main.data.showStore[showId].status = json[i].show.status;
                     for(var j in showUsers) {
                         if(!main.temp.notifyStore.hasOwnProperty(j)) {
                             main.temp.notifyStore[j] = '';
                         };
+                        
+                        var chatSettings = main.chatCheck(j);
+                        chatSettings[showId].status = json[i].show.status;
+                        
                         main.temp.notifyStore[j] += json[i].show.name + '\n';
                     };
                 };
@@ -428,12 +455,13 @@ var ShowTimeBot = new function() {
                     'sendMessage'
                     , {
                         "chatId": i
-                        , "encodedMessage": "New episodes:\n" + main.temp.notifyStore[i]
+                        , "encodedMessage": "New episodes from " + result.country + ":\n" + main.temp.notifyStore[i]
                     }
                 );
                 delete main.temp.notifyStore[i];
             };
-            console.log(main.temp);
+            console.log('ShowUpdate');
+            console.log(main.temp.notifyStore);
         });
         return false;
     };
