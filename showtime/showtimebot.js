@@ -164,7 +164,6 @@ var ShowTimeBot = new function() {
                         }
                     }
                 };
-                var latestEpisodeId = json._links.previousepisode.href.split('/');
                 
                 if(!main.data.showStore.hasOwnProperty(json.id)) {
                     main.data.showStore[json.id] = {
@@ -174,12 +173,16 @@ var ShowTimeBot = new function() {
                 };
                 main.data.showStore[json.id].name = json.name;
                 main.data.showStore[json.id].status = json.status;
-                main.callApi(
-                    "episode"
-                    , {"episodeId": latestEpisodeId[latestEpisodeId.length - 1]}
-                    , resultFake
-                    , main.showAddEpisodeHandler
-                );
+                
+                if(json._links.hasOwnProperty('previousepisode')) {
+                    var latestEpisodeId = json._links.previousepisode.href.split('/');
+                    main.callApi(
+                        "episode"
+                        , {"episodeId": latestEpisodeId[latestEpisodeId.length - 1]}
+                        , resultFake
+                        , main.showAddEpisodeHandler
+                    );
+                };
                 
                 main.data.showStore[json.id].users[result.message.chat.id] = true;
                 if(!chatSettings.hasOwnProperty(json.id)) {
