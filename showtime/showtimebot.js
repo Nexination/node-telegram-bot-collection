@@ -21,7 +21,6 @@ var ShowTimeBot = new function() {
                 "620": {
                     "name": "The Last Man On Earth"
                     , "episodeCount": 111
-                    , "status": "Running"
                 }
             }
         }
@@ -112,7 +111,7 @@ var ShowTimeBot = new function() {
         
         var settings = '';
         for(var i in chatSettings) {
-            settings += i + ': "' + chatSettings[i].name + '" E:' + chatSettings[i].episodeCount + ' (' + chatSettings[i].status + ')\n'
+            settings += i + ': "' + main.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + ' (' + main.data.showStore[i].status + ')\n'
         };
         
         main.telegram.apiCall(
@@ -188,8 +187,6 @@ var ShowTimeBot = new function() {
                         "episodeCount": 0
                     };
                 };
-                chatSettings[json.id].name = json.name;
-                chatSettings[json.id].status = json.status;
                 
                 message = json.name + ' added';
             }
@@ -251,7 +248,7 @@ var ShowTimeBot = new function() {
                 var showId = showList[i];
                 var message = '';
                 if(chatSettings.hasOwnProperty(showId)) {
-                    var showName = chatSettings[showId].name;
+                    var showName = main.data.showStore[showId].name;
                     delete main.data.showStore[showId].users[result.message.chat.id];
                     delete chatSettings[showId];
                     
@@ -286,7 +283,7 @@ var ShowTimeBot = new function() {
                 , {
                     "chatId": result.message.chat.id
                     , "encodedMessage": "Please input a show id and a space.\n"
-                        + "Follow this by on of two options:\n"
+                        + "Follow this by one of two options:\n"
                         + "1. A period(.) to go one episode ahead\n"
                         + "2. A season+episode(612) to jump to that episode\n"
                 }
@@ -294,7 +291,7 @@ var ShowTimeBot = new function() {
         }
         else {
             var showData = result.message.text.split(' ');
-            var message = '';
+            var message = 'You are not currently watching this show.';
             
             if(isNaN(showData[0]) || showData.length < 2) {
                 message = 'Wrong format.';
@@ -306,7 +303,7 @@ var ShowTimeBot = new function() {
                 else {
                     chatSettings[showData[0]].episodeCount = parseInt(showData[1]);
                 };
-                message = chatSettings[showData[0]].name + " updated to " + chatSettings[showData[0]].episodeCount;
+                message = main.data.showStore[showData[0]].name + " updated to " + chatSettings[showData[0]].episodeCount;
             };
             
             main.telegram.apiCall(
@@ -330,7 +327,7 @@ var ShowTimeBot = new function() {
         for(var i in chatSettings) {
             console.log(i + main.data.showStore[i]);
             if(chatSettings[i].episodeCount < main.data.showStore[i].episodeCount) {
-                behindOnShows += chatSettings[i].episodeCount + '/' + main.data.showStore[i].episodeCount + ' - ' + chatSettings[i].name + '(' + i + ')\n';
+                behindOnShows += chatSettings[i].episodeCount + '/' + main.data.showStore[i].episodeCount + ' - ' + main.data.showStore[i].name + '(' + i + ')\n';
             };
         };
         
@@ -446,9 +443,8 @@ var ShowTimeBot = new function() {
                         };
                         
                         var chatSettings = main.chatCheck(j);
-                        chatSettings[showId].status = json[i].show.status;
                         
-                        main.temp.notifyStore[j] += json[i].show.name + '\n';
+                        main.temp.notifyStore[j] += json[i].show.name + ': ' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)); + '\n';
                     };
                 };
             };
