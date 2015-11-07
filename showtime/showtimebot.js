@@ -93,7 +93,7 @@ var ShowTimeBot = new function() {
                 , "encodedMessage": "This bot uses TV Maze API.\n"
                     + "To use this show alert bot,\n"
                     + "type /showsearch to find a show"
-                    + "and then type /showadd to add a show by id."
+                    + "and then type /showadd to add a show by id.\n"
                     + "Command list:\n"
                     + "/start - Greeting message\n"
                     + "/help - Show this help window\n"
@@ -133,7 +133,7 @@ var ShowTimeBot = new function() {
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input show id(s) you want to watch:"
+                    , "encodedMessage": "Please input show id(s) you want to subscribe to:"
                 }
             );
         }
@@ -239,7 +239,7 @@ var ShowTimeBot = new function() {
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input show id(s) you want to remove:"
+                    , "encodedMessage": "Please input show id(s) you want to unsubscribe from:"
                     
                 }
             );
@@ -286,7 +286,10 @@ var ShowTimeBot = new function() {
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input an id of a show, a space and a . or a season+episode number:\n"
+                    , "encodedMessage": "Please input a show id and a space.\n"
+                        + "Follow this by on of two options:\n"
+                        + "1. A period(.) to go one episode ahead\n"
+                        + "2. A season+episode(612) to jump to that episode\n"
                 }
             );
         }
@@ -328,11 +331,11 @@ var ShowTimeBot = new function() {
         for(var i in chatSettings) {
             console.log(i + main.data.showStore[i]);
             if(chatSettings[i].episodeCount < main.data.showStore[i].episodeCount) {
-                behindOnShows += chatSettings[i].name + ' by ' + (main.data.showStore[i].episodeCount - chatSettings[i].episodeCount) + ' episodes\n';
+                behindOnShows += chatSettings[i].episodeCount + '/' + main.data.showStore[i].episodeCount + ' - ' + chatSettings[i].name + '(' + i + ')\n';
             };
         };
         
-        var message = 'You are behind on these shows:\n' + behindOnShows;
+        var message = '(current episode)/(latest episode) - Show name(id):\n' + behindOnShows;
         main.telegram.apiCall(
             'sendMessage'
             , {
