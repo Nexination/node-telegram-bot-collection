@@ -76,7 +76,7 @@ var ShowTimeBot = new function() {
             , {
                 "chatId": result.message.chat.id
                 , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated show bot!\n"
-                    + "It uses the TV Maze API and it alerts you to new episodes of shows you have subscribed to.\n"
+                    + "It uses the TV Maze API(http://www.tvmaze.com/) and it alerts you to new episodes of shows you have subscribed to.\n"
                     + "It also allows you to manually check for shows you are behind on.\n"
                     + "Please check /help before you try to use the bot."
             }
@@ -90,10 +90,9 @@ var ShowTimeBot = new function() {
             'sendMessage'
             , {
                 "chatId": result.message.chat.id
-                , "encodedMessage": "This bot uses TV Maze API.\n"
-                    + "To use this show alert bot,\n"
-                    + "type /showsearch to find a show"
-                    + "and then type /showadd to add a show by id.\n"
+                , "encodedMessage": "To use this show alert bot,\n"
+                    + "type /showsearch to find a show "
+                    + "and then type /showadd to add a show by id.\n\n"
                     + "Command list:\n"
                     + "/start - Greeting message\n"
                     + "/help - Show this help window\n"
