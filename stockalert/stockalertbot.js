@@ -7,8 +7,16 @@ var StockAlertBot = new function() {
     this.telegram = {};
     this.data = {
         "token": ""
-        , "users": {}
-        , "stockStore": {}
+        , "users": {
+            "1880667": {
+                    "stocks":[
+                        "GOLD"
+                    ]
+                }
+            }
+        , "stockStore": {
+            "GOLD": 0.3
+        }
     };
     this.chatCheck = function(chatId) {
         if(!main.data.users.hasOwnProperty(chatId)) {
@@ -254,6 +262,31 @@ var StockAlertBot = new function() {
         }
         return false;
     };
+    this.alertAllUsers = function() {
+        var updateFileName = 'update';
+        if(fs.existsSync(updateFileName)) {
+            fs.readFile(
+                'update'
+                , function(error, data) {
+                    if(!error) {
+                        var update = JSON.parse(data);
+                        if(update.hasOwnProperty('news')) {
+                            for(var i in main.data.users) {
+                                main.telegram.apiCall(
+                                    'sendMessage'
+                                    , {
+                                        "chatId": i
+                                        , "encodedMessage": update.news
+                                    }
+                                );
+                            };
+                        };
+                    };
+                }
+            );
+        };
+        return false;
+    };
     this.runAfterLoad = function() {
         main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
         
@@ -264,6 +297,7 @@ var StockAlertBot = new function() {
         main.telegram.on('stockremove', main.stockRemove);
         main.telegram.on('cancel', main.deferredActionCancel);
         
+        main.alertAllUsers();
         main.getStockUpdates();
         setInterval(main.getStockUpdates, (5*60*1000));
         

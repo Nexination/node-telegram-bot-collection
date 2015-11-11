@@ -448,7 +448,7 @@ var ShowTimeBot = new function() {
                         
                         var chatSettings = main.chatCheck(j);
                         
-                        main.temp.notifyStore[j] += json[i].show.name + ': ' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)); + '\n';
+                        main.temp.notifyStore[j] += json[i].show.name + ': ' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)) + '\n';
                     };
                 };
             };
@@ -509,6 +509,31 @@ var ShowTimeBot = new function() {
         }
         return false;
     };
+    this.alertAllUsers = function() {
+        var updateFileName = 'update';
+        if(fs.existsSync(updateFileName)) {
+            fs.readFile(
+                'update'
+                , function(error, data) {
+                    if(!error) {
+                        var update = JSON.parse(data);
+                        if(update.hasOwnProperty('news')) {
+                            for(var i in main.data.users) {
+                                main.telegram.apiCall(
+                                    'sendMessage'
+                                    , {
+                                        "chatId": i
+                                        , "encodedMessage": update.news
+                                    }
+                                );
+                            };
+                        };
+                    };
+                }
+            );
+        };
+        return false;
+    };
     this.runAfterLoad = function() {
         main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
         
@@ -522,6 +547,7 @@ var ShowTimeBot = new function() {
         main.telegram.on('showsearch', main.showSearch);
         main.telegram.on('cancel', main.deferredActionCancel);
         
+        main.alertAllUsers();
         main.getShowUpdates();
         setInterval(main.getShowUpdates, (12*60*60*1000));
         
