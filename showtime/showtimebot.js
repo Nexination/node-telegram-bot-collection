@@ -101,7 +101,8 @@ var ShowTimeBot = new function() {
                     + "/showtick - Tick an episode as viewed via id\n"
                     + "/showmissing - Show the episodes you are behind on\n"
                     + "/showsearch - Search for a show by name or id\n"
-                    + "/cancel - Cancels any ongoing action\n"
+                    + "/cancel - Cancels any ongoing action\n\n"
+                    + "If you have problems with this product, please visit us on https://github.com/Nexination/node-telegram-bot-collection"
             }
         );
         return false;
@@ -522,7 +523,7 @@ var ShowTimeBot = new function() {
         main.telegram.on('cancel', main.deferredActionCancel);
         
         main.getShowUpdates();
-        setInterval(main.getShowUpdates, (8*60*60*1000));
+        setInterval(main.getShowUpdates, (12*60*60*1000));
         
         return false;
     };

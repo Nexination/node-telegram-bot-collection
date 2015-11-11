@@ -49,7 +49,8 @@ var StockAlertBot = new function() {
                     + "/settings - Show your added stocks and other info\n"
                     + "/stockadd - Add a stock to alerts\n"
                     + "/stockremove - Remove a stock from alerts\n"
-                    + "/cancel - Cancels any ongoing action\n"
+                    + "/cancel - Cancels any ongoing action\n\n"
+                    + "If you have problems with this product, please visit us on https://github.com/Nexination/node-telegram-bot-collection"
             }
         );
         return false;
