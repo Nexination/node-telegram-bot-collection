@@ -383,7 +383,8 @@ var ShowTimeBot = new function() {
             if(data) {
                 var json = JSON.parse(data);
                 for(var i = 0; i < json.length; i += 1) {
-                    message += json[i].show.id + ' ' + json[i].show.name + ' (' + json[i].show.premiered.substr(0, 4) + ')\n';
+                    var year = json[i].show.premiered;
+                    message += json[i].show.id + ' ' + json[i].show.name + ' (' + (year ? year.substr(0, 4) : 'N/A') + ')\n';
                 };
             }
             else if(response.statusCode === 301) {
