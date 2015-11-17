@@ -423,9 +423,12 @@ var ShowTimeBot = new function() {
             "US"
             , "GB"
         ];
+        var now = new Date();
         
-        for(var i = 0; i < countries.length; i += 1) {
-            main.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, main.getShowUpdatesHandler);
+        if(now.getHours() === 23) {}
+            for(var i = 0; i < countries.length; i += 1) {
+                main.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, main.getShowUpdatesHandler);
+            };
         };
         return false;
     };
@@ -550,7 +553,7 @@ var ShowTimeBot = new function() {
         
         main.alertAllUsers();
         main.getShowUpdates();
-        setInterval(main.getShowUpdates, (12*60*60*1000));
+        setInterval(main.getShowUpdates, (60*60*1000));
         
         return false;
     };
