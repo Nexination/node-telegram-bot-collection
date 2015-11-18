@@ -425,7 +425,7 @@ var ShowTimeBot = new function() {
         ];
         var now = new Date();
         
-        if(now.getHours() === 23) {}
+        if(now.getHours() === 23) {
             for(var i = 0; i < countries.length; i += 1) {
                 main.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, main.getShowUpdatesHandler);
             };
