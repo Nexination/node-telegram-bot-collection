@@ -288,8 +288,8 @@ var ShowTimeBot = new function() {
                     "chatId": result.message.chat.id
                     , "encodedMessage": "Please input a show id and a space.\n"
                         + "Follow this by one of two options:\n"
-                        + "1. A period(.) to go one episode ahead\n"
-                        + "2. A season+episode(612) to jump to that episode\n"
+                        + "1. Nothing to advance one episode\n"
+                        + "2. A season+episode(612) to jump to that specific episode\n"
                 }
             );
         }
@@ -297,11 +297,11 @@ var ShowTimeBot = new function() {
             var showData = result.message.text.split(' ');
             var message = 'You are not currently watching this show.';
             
-            if(isNaN(showData[0]) || showData.length < 2) {
+            if(isNaN(showData[0]) || showData.length < 1) {
                 message = 'Wrong format.';
             }
             else if(chatSettings.hasOwnProperty(showData[0])) {
-                if(showData[1] === '.') {
+                if(showData.length === 1) {
                     chatSettings[showData[0]].episodeCount += 1;
                 }
                 else {
@@ -331,11 +331,11 @@ var ShowTimeBot = new function() {
         for(var i in chatSettings) {
             console.log(i + main.data.showStore[i]);
             if(chatSettings[i].episodeCount < main.data.showStore[i].episodeCount) {
-                behindOnShows += chatSettings[i].episodeCount + '/' + main.data.showStore[i].episodeCount + ' - ' + main.data.showStore[i].name + '(' + i + ')\n';
+                behindOnShows += i + ': ' + '"' + main.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + '/' + main.data.showStore[i].episodeCount + '\n';
             };
         };
         
-        var message = '(current episode)/(latest episode) - Show name(id):\n' + behindOnShows;
+        var message = 'Shows you are behind on:\n' + behindOnShows;
         main.telegram.apiCall(
             'sendMessage'
             , {
@@ -379,12 +379,12 @@ var ShowTimeBot = new function() {
             data += chunk;
         });
         response.on('end', function() {
-            var message = '';
+            var message = 'Shows matching your search:\n';
             if(data) {
                 var json = JSON.parse(data);
                 for(var i = 0; i < json.length; i += 1) {
                     var year = json[i].show.premiered;
-                    message += json[i].show.id + ' ' + json[i].show.name + ' (' + (year ? year.substr(0, 4) : 'N/A') + ')\n';
+                    message += json[i].show.id + ': "' + json[i].show.name + '" (' + (year ? year.substr(0, 4) : 'N/A') + ')\n';
                 };
             }
             else if(response.statusCode === 301) {
@@ -452,7 +452,7 @@ var ShowTimeBot = new function() {
                         
                         var chatSettings = main.chatCheck(j);
                         
-                        main.temp.notifyStore[j] += json[i].show.name + ': ' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)) + '\n';
+                        main.temp.notifyStore[j] += i + ': "' +json[i].show.name + '" E:' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)) + '\n';
                     };
                 };
             };
