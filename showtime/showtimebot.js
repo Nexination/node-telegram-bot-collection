@@ -452,7 +452,7 @@ var ShowTimeBot = new function() {
                         
                         var chatSettings = main.chatCheck(j);
                         
-                        main.temp.notifyStore[j] += i + ': "' +json[i].show.name + '" E:' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)) + '\n';
+                        main.temp.notifyStore[j] += json[i].show.id + ': "' +json[i].show.name + '" E:' + parseInt(json[i].season + main.zeroPad(json[i].number, 2)) + '\n';
                     };
                 };
             };
