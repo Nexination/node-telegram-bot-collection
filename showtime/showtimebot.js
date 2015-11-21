@@ -286,10 +286,8 @@ var ShowTimeBot = new function() {
                 'sendMessage'
                 , {
                     "chatId": result.message.chat.id
-                    , "encodedMessage": "Please input a show id and a space.\n"
-                        + "Follow this by one of two options:\n"
-                        + "1. Nothing to advance one episode\n"
-                        + "2. A season+episode(612) to jump to that specific episode\n"
+                    , "encodedMessage": "Please input a show id to advance one episode\n"
+                        + "or a show id followed season+episode(612) to go to that specific episode.\n"
                 }
             );
         }
