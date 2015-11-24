@@ -90,7 +90,8 @@ var NexinationBot = new function() {
             "name": result.message.from.username
             , "message": result.message.text
         };
-        if(main.data.users[result.message.chat.id] !== undefined) {
+        if(main.socket.readystate === 1 && main.data.users[result.message.chat.id] !== undefined) {
+            //console.log(main.socket);
             main.socket.send(JSON.stringify(jsonRpc));
         };
         
