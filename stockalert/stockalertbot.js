@@ -96,22 +96,33 @@ var StockAlertBot = new function() {
             );
         }
         else {
-            var stock = result.message.text.toUpperCase();
-            if(!chatSettings.hasOwnProperty('stocks')) {
-                chatSettings.stocks = [];
+            let stock = result.message.text.toUpperCase();
+            if(/^[a-zA-Z0-9\.\=]+$/gi.test(stock)) {
+                if(!chatSettings.hasOwnProperty('stocks')) {
+                    chatSettings.stocks = [];
+                };
+                chatSettings.stocks.push(stock);
+                if(!main.data.stockStore.hasOwnProperty(stock)) {
+                    main.data.stockStore[stock] = 0;
+                };
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": "Stock " + stock + " confirmed."
+                    }
+                );
+                main.dataFileAction('save');
+            }
+            else {
+                main.telegram.apiCall(
+                    'sendMessage'
+                    , {
+                        "chatId": result.message.chat.id
+                        , "encodedMessage": "Wrong stock format!"
+                    }
+                );
             };
-            chatSettings.stocks.push(stock);
-            if(!main.data.stockStore.hasOwnProperty(stock)) {
-                main.data.stockStore[stock] = 0;
-            };
-            main.telegram.apiCall(
-                'sendMessage'
-                , {
-                    "chatId": result.message.chat.id
-                    , "encodedMessage": "Stock " + stock + " confirmed."
-                }
-            );
-            main.dataFileAction('save');
         };
         
         return false;
@@ -169,6 +180,8 @@ var StockAlertBot = new function() {
         return false;
     };
     this.getStockUpdates = function() {
+        let now = new Date();
+        console.log('---UPDATING STOCKS---' + now.toISOString());
         var callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
         var stocksToBeCounted = '';
         
@@ -341,7 +354,6 @@ var StockAlertBot = new function() {
     };
     this.__construct = function() {
         main.dataFileAction('load', main.runAfterLoad);
-        
     };
     this.__construct();
 };
