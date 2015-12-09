@@ -1,12 +1,13 @@
 #!/bin/bash
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-cd $DIR
+cd $DIR/$1/
 PIDF="processid"
+SCRIPT=$1'bot.js'
 start () {
     if [ -f $PIDF ]; then
         echo "Already running"
     else
-        node stockalertbot.js > log 2>&1 &
+        node $SCRIPT > log 2>&1 &
         echo $! > $PIDF
     fi
 }
@@ -18,11 +19,11 @@ stop () {
         echo "Already stopped"
     fi
 }
-if [ "$1" == "start" ]; then
+if [ "$2" == "start" ]; then
     start
-elif [ "$1" == "stop" ]; then
+elif [ "$2" == "stop" ]; then
     stop
-elif [ "$1" == "restart" ]; then
+elif [ "$2" == "restart" ]; then
     stop
     start
 fi
