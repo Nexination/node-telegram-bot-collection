@@ -1,3 +1,4 @@
+"use strict";
 var https = require('https');
 var fs = require('fs');
 var tbl = require('telegram-bot-api');
@@ -171,6 +172,8 @@ var StockAlertBot = new function() {
         var callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
         var stocksToBeCounted = '';
         
+        main.cleanUpUsers();
+        
         for(var stock in main.data.stockStore) {
             stocksToBeCounted += ',%22' + stock + '%22';
         };
@@ -179,6 +182,7 @@ var StockAlertBot = new function() {
         https.get(callUrl, main.stockDataHandler).on('error', function(e) {
             console.error(e);
         });
+        
         return false;
     };
     this.stockDataHandler = function(resource) {
@@ -187,7 +191,6 @@ var StockAlertBot = new function() {
             data += chunk;
         });
         resource.on('end', function() {
-            console.log(data);
             var jsonData = {};
             try {
                 jsonData = JSON.parse(data);
@@ -195,9 +198,10 @@ var StockAlertBot = new function() {
                 console.log(error);
             };
             if(jsonData.hasOwnProperty('query')) {
-                if(jsonData.query.hasOwnProperty('result')) {
+                if(jsonData.query.hasOwnProperty('results')) {
                     for(var i = 0; i < jsonData.query.results.quote.length; i += 1) {
                         var quote = jsonData.query.results.quote[i];
+                        console.log(quote.PercentChange);
                         if(quote.Symbol !== 'YHOO') {
                             if(quote.PercentChange !== null) {
                                 var currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
@@ -205,18 +209,22 @@ var StockAlertBot = new function() {
                                     console.log(quote.Symbol + ' ' + currentQuote);
                                     main.data.stockStore[quote.Symbol] = currentQuote;
                                     main.alarmUsers(quote.Symbol);
-                                    main.dataFileAction('save');
                                 };
+                            }
+                            else {
+                                console.log('Deleted ' + quote.Symbol);
+                                delete main.data.stockStore[quote.Symbol];
                             };
                         };
                     };
+                    main.dataFileAction('save');
                 };
             };
         });
         return false;
     };
     this.alarmUsers = function(stockId) {
-        for(chatId in main.data.users) {
+        for(let chatId in main.data.users) {
             if(main.data.users[chatId].hasOwnProperty('stocks')) {
                 if(main.data.users[chatId].stocks.indexOf(stockId) !== -1) {
                     main.telegram.apiCall(
@@ -229,6 +237,34 @@ var StockAlertBot = new function() {
                 };
             };
         };
+        return false;
+    };
+    this.cleanUpUsers = function() {
+        for(let chatId in main.data.users) {
+            let deleteUser = false;
+            if(main.data.users[chatId].hasOwnProperty('stocks')) {
+                let stocks = main.data.users[chatId].stocks;
+                if(stocks.length === 0) {
+                    deleteUser = true;
+                }
+                else {
+                    for(let i = 0; i < stocks.length; i += 1) {
+                        if(main.data.stockStore[stocks[i]] === undefined) {
+                            stocks.splice(i, 1);
+                        };
+                    };
+                };
+            }
+            else {
+                deleteUser = true;
+            };
+            
+            if(deleteUser) {
+                console.log('Deleting user ' + chatId);
+                delete main.data.users[chatId];
+            };
+        };
+        main.dataFileAction('save');
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
