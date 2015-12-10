@@ -14,7 +14,7 @@ var NexinationBot = new function() {
     
     this.commandParser = function(result) {
         if(main.data.users[result.message.chat.id] !== undefined) {
-            if(result.message.text === '/settings') {
+            if(result.message.text === '/settings@NexinationBot' || result.message.text === '/settings') {
                 child = exec("ps ax | grep '[n]ode'", function (error, stdout, stderr) {
                     console.log('stdout:' + stdout);
                     
