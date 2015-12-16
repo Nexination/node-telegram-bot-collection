@@ -1,0 +1,21 @@
+{
+  "name": "node-telegram-bot-collection",
+  "version": "1.0.0",
+  "description": "Contains a small collection of bots for Telegram Messenger",
+  "main": "index.js",
+  "scripts": {
+    "start": "./bot nexination restart && ./bot showtime restart && ./bot stockalert restart",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nexination/node-telegram-bot-collection.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nexination/node-telegram-bot-collection/issues"
+  },
+  "homepage": "https://github.com/Nexination/node-telegram-bot-collection#readme"
+}
