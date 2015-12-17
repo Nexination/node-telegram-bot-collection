@@ -1,5 +1,5 @@
 {
-  "name": "node-telegram-bot-collection",
+  "name": "nexi-telegram-bot-collection",
   "version": "1.0.0",
   "description": "Contains a small collection of bots for Telegram Messenger",
   "main": "index.js",
