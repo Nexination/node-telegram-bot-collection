@@ -1,7 +1,7 @@
 var https = require('https');
 var http = require('http');
 var fs = require('fs');
-var tbl = require('telegram-bot-api');
+var tbl = require('nexi-telegram-bot-api');
 
 var ShowTimeBot = new function() {
     var main = this;

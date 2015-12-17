@@ -1,7 +1,7 @@
 "use strict";
 var https = require('https');
 var fs = require('fs');
-var tbl = require('telegram-bot-api');
+var tbl = require('nexi-telegram-bot-api');
 
 var StockAlertBot = new function() {
     var main = this;

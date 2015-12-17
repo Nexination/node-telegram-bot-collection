@@ -3,7 +3,7 @@ var NexinationBot = new function() {
     var https = require('https');
     var fs = require('fs');
     var exec = require('child_process').exec;
-    var tbl = require('telegram-bot-api');
+    var tbl = require('nexi-telegram-bot-api');
     
     this.telegram = {};
     this.data = {
