@@ -11,8 +11,11 @@
     "type": "git",
     "url": "git+https://github.com/Nexination/node-telegram-bot-collection.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "telegram",
+    "bot"
+  ],
+  "author": "Kristian B",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Nexination/node-telegram-bot-collection/issues"
