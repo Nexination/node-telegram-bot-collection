@@ -2,17 +2,19 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 cd $DIR/$1/
 PIDF="processid"
-SCRIPT=$1'bot.js'
+SCRIPT='server.js'
 start () {
     if [ -f $PIDF ]; then
         echo "Already running"
     else
+        echo "Starting..."
         node $SCRIPT > log 2>&1 &
         echo $! > $PIDF
     fi
 }
 stop () {
     if [ -f processid ]; then
+        echo "Stopping..."
         kill $(<"$PIDF")
         rm $PIDF
     else

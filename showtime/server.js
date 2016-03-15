@@ -481,7 +481,7 @@ var ShowTimeBot = new function() {
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
-        var dataFile = 'showdata';
+        var dataFile = 'data';
         if(action === 'load') {
             fs.readFile(
                 dataFile

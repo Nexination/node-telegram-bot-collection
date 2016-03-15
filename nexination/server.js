@@ -48,7 +48,7 @@ var NexinationBot = new function() {
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
-        var dataFile = 'chatdata';
+        var dataFile = 'data';
         if(action === 'load') {
             fs.readFile(
                 dataFile

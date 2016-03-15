@@ -281,7 +281,7 @@ var StockAlertBot = new function() {
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
-        var dataFile = 'stockdata';
+        var dataFile = 'data';
         if(action === 'load') {
             fs.readFile(
                 dataFile
