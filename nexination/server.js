@@ -3,21 +3,21 @@ var NexinationBot = new function() {
     var https = require('https');
     var fs = require('fs');
     var exec = require('child_process').exec;
-    var tbl = require('nexi-telegram-bot-api');
-    
+    var Telegram = require('telegram-bot-manager');
+
     this.telegram = {};
     this.data = {
         "token": ""
         , "users": {
         }
     };
-    
+
     this.commandParser = function(result) {
         if(main.data.users[result.message.chat.id] !== undefined) {
             if(result.message.text === '/settings@NexinationBot' || result.message.text === '/settings') {
                 child = exec("ps ax | grep '[n]ode'", function (error, stdout, stderr) {
                     console.log('stdout:' + stdout);
-                    
+
                     main.telegram.apiCall(
                         'sendMessage'
                         , {
@@ -40,11 +40,11 @@ var NexinationBot = new function() {
                 }
             );
         };
-        
+
         return false;
     };
     this.messageParser = function(result) {
-        
+
         return false;
     };
     this.dataFileAction = function(action, runAfter) {
@@ -79,14 +79,13 @@ var NexinationBot = new function() {
         return false;
     };
     this.runAfterLoad = function() {
-        console.log(tbl);
-        main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
-        
+        main.telegram = new (Telegram.BotManager)({"botToken": main.data.token});
+
         main.telegram.on('start', main.commandParser);
         main.telegram.on('help', main.commandParser);
         main.telegram.on('settings', main.commandParser);
         main.telegram.on('default', main.messageParser);
-        
+
         return false;
     };
     this.__construct = function() {

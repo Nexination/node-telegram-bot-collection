@@ -1,7 +1,7 @@
 "use strict";
 var https = require('https');
 var fs = require('fs');
-var tbl = require('nexi-telegram-bot-api');
+var Telegram = require('telegram-bot-manager');
 
 var StockAlertBot = new function() {
     var main = this;
@@ -23,12 +23,12 @@ var StockAlertBot = new function() {
         if(!main.data.users.hasOwnProperty(chatId)) {
             main.data.users[chatId] = {};
         };
-        
+
         return main.data.users[chatId];
     };
     this.start = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
-        
+
         main.telegram.apiCall(
             'sendMessage'
             , {
@@ -42,7 +42,7 @@ var StockAlertBot = new function() {
     };
     this.help = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
-        
+
         main.telegram.apiCall(
             'sendMessage'
             , {
@@ -66,12 +66,12 @@ var StockAlertBot = new function() {
     };
     this.settings = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
-        
+
         var textSettings = '';
         for(var i in chatSettings) {
             textSettings += '- ' + i + '\n' + JSON.stringify(chatSettings[i]);
         };
-        
+
         main.telegram.apiCall(
             'sendMessage'
             , {
@@ -84,7 +84,7 @@ var StockAlertBot = new function() {
     };
     this.stockAdd = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
-        
+
         if(result.message.text.substr(0, 1) === '/') {
             main.telegram.deferAction(result.message.chat.id, main.stockAdd);
             main.telegram.apiCall(
@@ -124,12 +124,12 @@ var StockAlertBot = new function() {
                 );
             };
         };
-        
+
         return false;
     };
     this.stockRemove = function(result) {
         var chatSettings = main.chatCheck(result.message.chat.id);
-        
+
         if(result.message.text.substr(0, 1) === '/') {
             main.telegram.deferAction(result.message.chat.id, main.stockRemove);
             main.telegram.apiCall(
@@ -165,7 +165,7 @@ var StockAlertBot = new function() {
                 };
             };
         };
-        
+
         return false;
     };
     this.deferredActionCancel = function(result) {
@@ -184,18 +184,18 @@ var StockAlertBot = new function() {
         console.log('---UPDATING STOCKS---' + now.toISOString());
         var callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
         var stocksToBeCounted = '';
-        
+
         main.cleanUpUsers();
-        
+
         for(var stock in main.data.stockStore) {
             stocksToBeCounted += ',%22' + stock + '%22';
         };
         callUrl = callUrl.replace('${target}', stocksToBeCounted);
-        
+
         https.get(callUrl, main.stockDataHandler).on('error', function(e) {
             console.error(e);
         });
-        
+
         return false;
     };
     this.stockDataHandler = function(resource) {
@@ -271,7 +271,7 @@ var StockAlertBot = new function() {
             else {
                 deleteUser = true;
             };
-            
+
             if(deleteUser) {
                 console.log('Deleting user ' + chatId);
                 delete main.data.users[chatId];
@@ -337,19 +337,19 @@ var StockAlertBot = new function() {
         return false;
     };
     this.runAfterLoad = function() {
-        main.telegram = new tbl.TelegramBotLib({"botToken": main.data.token});
-        
+        main.telegram = new (Telegram.BotManager)({"botToken": main.data.token});
+
         main.telegram.on('start', main.start);
         main.telegram.on('help', main.help);
         main.telegram.on('settings', main.settings);
         main.telegram.on('stockadd', main.stockAdd);
         main.telegram.on('stockremove', main.stockRemove);
         main.telegram.on('cancel', main.deferredActionCancel);
-        
+
         main.alertAllUsers();
         main.getStockUpdates();
         setInterval(main.getStockUpdates, (5*60*1000));
-        
+
         return false;
     };
     this.__construct = function() {
