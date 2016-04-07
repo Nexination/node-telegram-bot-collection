@@ -4,7 +4,6 @@ class StockAlertBot {
     this.lib = {};
     this.lib.https = require('https');
     this.lib.fs = require('fs');
-    this.lib.exec = require('child_process').exec;
     this.lib.fileUnitFiler = new (require('fileunit').Filer)('data');
     this.lib.telegram = {};
     
@@ -21,7 +20,7 @@ class StockAlertBot {
         "GOLD": 0.3
       }
     };
-    this.lib.fileUnitFiler.load((readError, fileData)=>{this.runAfterLoad(readError, fileData);});
+    this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
   }
   chatCheck(chatId) {
     if(!this.data.users.hasOwnProperty(chatId)) {
@@ -90,7 +89,7 @@ class StockAlertBot {
     let chatSettings = this.chatCheck(result.message.chat.id);
     
     if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result)=>{this.stockAdd(result);});
+      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.stockAdd(result);});
       this.lib.telegram.apiCall(
         'sendMessage'
         , {
@@ -135,7 +134,7 @@ class StockAlertBot {
     let chatSettings = this.chatCheck(result.message.chat.id);
     
     if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result)=>{this.stockRemove(result);});
+      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.stockRemove(result);});
       this.lib.telegram.apiCall(
         'sendMessage'
         , {
@@ -196,7 +195,7 @@ class StockAlertBot {
     };
     callUrl = callUrl.replace('${target}', stocksToBeCounted);
     
-    this.lib.https.get(callUrl, (resource)=>{this.stockDataHandler(resource);}).on('error', function(e) {
+    this.lib.https.get(callUrl, (resource) => {this.stockDataHandler(resource);}).on('error', function(e) {
       console.error(e);
     });
     
@@ -204,10 +203,10 @@ class StockAlertBot {
   }
   stockDataHandler(resource) {
     let data = '';
-    resource.on('data', (chunk)=>{
+    resource.on('data', (chunk) => {
       data += chunk;
     });
-    resource.on('end', ()=>{
+    resource.on('end', () => {
       let jsonData = {};
       try {
         jsonData = JSON.parse(data);
@@ -316,16 +315,16 @@ class StockAlertBot {
       console.log(this.data);
       this.lib.telegram = new (require('telegram-bot-manager').BotManager)({"botToken": this.data.token});
 
-      this.lib.telegram.on('start', (result)=>{this.start(result);});
-      this.lib.telegram.on('help', (result)=>{this.help(result);});
-      this.lib.telegram.on('settings', (result)=>{this.settings(result);});
-      this.lib.telegram.on('stockadd', (result)=>{this.stockAdd(result);});
-      this.lib.telegram.on('stockremove', (result)=>{this.stockRemove(result);});
-      this.lib.telegram.on('cancel', (result)=>{this.deferredActionCancel(result);});
+      this.lib.telegram.on('start', (result) => {this.start(result);});
+      this.lib.telegram.on('help', (result) => {this.help(result);});
+      this.lib.telegram.on('settings', (result) => {this.settings(result);});
+      this.lib.telegram.on('stockadd', (result) => {this.stockAdd(result);});
+      this.lib.telegram.on('stockremove', (result) => {this.stockRemove(result);});
+      this.lib.telegram.on('cancel', (result) => {this.deferredActionCancel(result);});
 
       this.alertAllUsers();
       this.getStockUpdates();
-      setInterval(()=>{this.getStockUpdates();}, (5*60*1000));
+      setInterval(() => {this.getStockUpdates();}, (5*60*1000));
     }
     else {
       throw readError;
