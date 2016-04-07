@@ -44,11 +44,11 @@ class NexinationBot {
       };
 
       return false;
-  };
+  }
   messageParser(result) {
 
       return false;
-  };
+  }
   runAfterLoad(readError, fileData) {
     if(!readError) {
       this.data = JSON.parse(fileData);
@@ -64,7 +64,7 @@ class NexinationBot {
       throw readError;
     };
     return false;
-  };
-};
+  }
+}
 
 let nexinationBot = new NexinationBot();
