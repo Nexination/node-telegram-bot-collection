@@ -428,7 +428,7 @@ class ShowTimeBot {
     
     if(now.getHours() === 23) {
       for(let i = 0; i < countries.length; i += 1) {
-        this.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, (result, repsonse) => {this.getShowUpdatesHandler(result, response);});
+        this.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, (result, response) => {this.getShowUpdatesHandler(result, response);});
       };
     };
     return false;
