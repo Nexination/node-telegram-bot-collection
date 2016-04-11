@@ -58,7 +58,7 @@ class NexinationBot {
       this.lib.telegram.on('start', (result) => {this.commandParser(result);});
       this.lib.telegram.on('help', (result) => {this.commandParser(result);});
       this.lib.telegram.on('settings', (result) => {this.commandParser(result);});
-      this.lib.telegram.on('default', () => {this.messageParser();});
+      this.lib.telegram.on('default', (result) => {this.messageParser(result);});
     }
     else {
       throw readError;

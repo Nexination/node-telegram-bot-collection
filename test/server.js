@@ -1,63 +1,68 @@
 "use strict";
-let Telegram = require('../../node-telegram-bot-api');
-let fs = require('fs');
-let globalData = {
-  "token": ""
-};
-
-class Test {
+class TestBuild {
   constructor() {
-    this.dataFile('load', 'endpointSetup');
-  }
-  dataFile(action, runAfter, dataFile) {
-      dataFile = (dataFile === undefined ? 'data' : dataFile);
-      let tempFunction = this[runAfter];
-      if(action === 'load') {
-        fs.readFile(
-          dataFile
-          , function(error, data) {
-            if(!error) {
-              globalData = JSON.parse(data);
-              console.log(globalData);
-              if(typeof tempFunction === 'function') {
-                tempFunction();
-              };
-            };
-          }
-        );
+    this.lib = {};
+    this.lib.fileUnitFiler = new (require('fileunit').Filer)('data');
+    this.lib.telegram = {};
+    
+    this.data = {
+      "token": ""
+      , "users": {
       }
-      else if(action === 'save') {
-        fs.writeFile(
-          dataFile
-          , JSON.stringify(this.data)
-          , function(error, data) {
-            if(error) {
-              console.log(error);
+    };
+    this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
+  }
+  commandParser(result) {
+    if(this.data.users[result.message.chat.id] !== undefined) {
+      if(result.message.text === '/settings@NexinationBot' || result.message.text === '/settings') {
+        //let child = this.lib.exec("ps ax | grep '[n]ode'", (error, stdout, stderr) => {
+          console.log('stdout:' + stdout);
+          
+          this.lib.telegram.apiCall(
+            'sendMessage'
+            , {
+              "chatId": result.message.chat.id
+              , "encodedMessage": stdout
             }
-            else if(typeof runAfter === 'function') {
-              this[runAfter]();
-            };
-          }
-        );
-      }
-      return false;
+          );
+          if (error !== null) {
+            console.log('exec error: ' + error);
+          };
+        });
+      };
+    }
+    else {
+      this.lib.telegram.apiCall(
+        'sendMessage'
+        , {
+          "chatId": result.message.chat.id
+          , "encodedMessage": "Stop trying to use the damn commands, they are just there for show!"
+        }
+      );
+    };
+    
+    return false;
   }
-  endpointSetup() {
-    let telegram = new (Telegram.BotManager)({"botToken": globalData.token});
-    console.log(globalData);
-
-    //this.telegram.on('start', this.start);
-    //this.telegram.on('help', this.help);
-    //this.telegram.on('settings', this.settings);
-    //this.telegram.on('stockadd', this.stockAdd);
-    //this.telegram.on('stockremove', this.stockRemove);
-    //this.telegram.on('cancel', this.deferredActionCancel);
-
-    //this.alertAllUsers();
-    //this.getStockUpdates();
-    //setInterval(main.getStockUpdates, (5*60*1000));
-
+  messageParser(result) {
+    
+    return false;
+  }
+  runAfterLoad(readError, fileData) {
+    if(!readError) {
+      this.data = JSON.parse(fileData);
+      console.log(this.data);
+      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({"botToken": this.data.token});
+      
+      this.lib.telegram.on('start', (result) => {this.commandParser(result);});
+      this.lib.telegram.on('help', (result) => {this.commandParser(result);});
+      this.lib.telegram.on('settings', (result) => {this.commandParser(result);});
+      this.lib.telegram.on('default', (result) => {this.messageParser(result);});
+    }
+    else {
+      throw readError;
+    };
     return false;
   }
 }
-let test = new Test();
+
+let testBuild = new TestBuild();
