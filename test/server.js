@@ -7,6 +7,8 @@ class TestBuild {
     
     this.data = {
       "token": ""
+      , "cert": ""
+      , "key": ""
       , "users": {
       }
     };
@@ -15,20 +17,19 @@ class TestBuild {
   commandParser(result) {
     if(this.data.users[result.message.chat.id] !== undefined) {
       if(result.message.text === '/settings@NexinationBot' || result.message.text === '/settings') {
-        //let child = this.lib.exec("ps ax | grep '[n]ode'", (error, stdout, stderr) => {
-          console.log('stdout:' + stdout);
-          
-          this.lib.telegram.apiCall(
-            'sendMessage'
-            , {
-              "chatId": result.message.chat.id
-              , "encodedMessage": stdout
-            }
-          );
-          if (error !== null) {
-            console.log('exec error: ' + error);
-          };
-        });
+      //let child = this.lib.exec("ps ax | grep '[n]ode'", (error, stdout, stderr) => {
+        console.log('stdout:' + stdout);
+        
+        this.lib.telegram.apiCall(
+          'sendMessage'
+          , {
+            "chatId": result.message.chat.id
+            , "encodedMessage": stdout
+          }
+        );
+        if (error !== null) {
+          console.log('exec error: ' + error);
+        };
       };
     }
     else {
@@ -51,7 +52,7 @@ class TestBuild {
     if(!readError) {
       this.data = JSON.parse(fileData);
       console.log(this.data);
-      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({"botToken": this.data.token});
+      this.lib.telegram = new (require('../../node-telegram-bot-manager/server').BotManager)({"botToken": this.data.token, "type": "webhook", "key": this.data.key, "cert": this.data.cert});
       
       this.lib.telegram.on('start', (result) => {this.commandParser(result);});
       this.lib.telegram.on('help', (result) => {this.commandParser(result);});
