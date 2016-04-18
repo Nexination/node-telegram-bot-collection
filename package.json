@@ -4,7 +4,7 @@
   "description": "Contains a small collection of bots for Telegram Messenger",
   "main": "index.js",
   "scripts": {
-    "start": "./bot nexination restart && ./bot showtime restart && ./bot stockalert restart",
+    "start": "./bot nexination restart && ./bot showtime restart",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
