@@ -15,21 +15,16 @@ class TestBuild {
     this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
   }
   commandParser(result) {
+    console.log('!!!!!!!!!!!!!!!!HEY!!!!!!!!!!!!!!!!');
     if(this.data.users[result.message.chat.id] !== undefined) {
       if(result.message.text === '/settings@NexinationBot' || result.message.text === '/settings') {
-      //let child = this.lib.exec("ps ax | grep '[n]ode'", (error, stdout, stderr) => {
-        console.log('stdout:' + stdout);
-        
         this.lib.telegram.apiCall(
           'sendMessage'
           , {
             "chatId": result.message.chat.id
-            , "encodedMessage": stdout
+            , "encodedMessage": "test"
           }
         );
-        if (error !== null) {
-          console.log('exec error: ' + error);
-        };
       };
     }
     else {
