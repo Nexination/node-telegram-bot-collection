@@ -2,7 +2,6 @@
 class NexinationBot {
   constructor() {
     this.lib = {};
-    this.lib.https = require('https');
     this.lib.exec = require('child_process').exec;
     this.lib.fileUnitFiler = new (require('fileunit').Filer)('data');
     this.lib.telegram = {};
@@ -53,7 +52,17 @@ class NexinationBot {
     if(!readError) {
       this.data = JSON.parse(fileData);
       console.log(this.data);
-      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({"botToken": this.data.token});
+      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
+        "botToken": this.data.token
+        , "type": "webhook"
+        , "key": this.data.key
+        , "cert": this.data.cert
+        , "receiver": {
+          "port": 8082
+          , "protocol": "http"
+          , "endpoint": this.data.endpoint
+        }
+      });
       
       this.lib.telegram.on('start', (result) => {this.commandParser(result);});
       this.lib.telegram.on('help', (result) => {this.commandParser(result);});
