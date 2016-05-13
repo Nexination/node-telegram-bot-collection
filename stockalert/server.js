@@ -185,7 +185,7 @@ class StockAlertBot {
   getStockUpdates() {
     let now = new Date();
     console.log('---UPDATING STOCKS---' + now.toISOString());
-    let callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
+    let callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange,%20Ask,%20Bid%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
     let stocksToBeCounted = '';
     
     this.cleanUpUsers();
@@ -218,13 +218,14 @@ class StockAlertBot {
           for(let i = 0; i < jsonData.query.results.quote.length; i += 1) {
             let quote = jsonData.query.results.quote[i];
             console.log(quote.PercentChange);
+            console.log(quote);
             if(quote.Symbol !== 'YHOO') {
               if(quote.PercentChange !== null) {
                 let currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
                 if(this.data.stockStore[quote.Symbol] !== currentQuote) {
                   console.log(quote.Symbol + ' ' + currentQuote);
                   this.data.stockStore[quote.Symbol] = currentQuote;
-                  this.alarmUsers(quote.Symbol);
+                  this.alarmUsers(quote);
                 };
               }
               else {
@@ -239,15 +240,15 @@ class StockAlertBot {
     });
     return false;
   };
-  alarmUsers(stockId) {
+  alarmUsers(quote) {
     for(let chatId in this.data.users) {
       if(this.data.users[chatId].hasOwnProperty('stocks')) {
-        if(this.data.users[chatId].stocks.indexOf(stockId) !== -1) {
+        if(this.data.users[chatId].stocks.indexOf(quote.Symbol) !== -1) {
           this.lib.telegram.apiCall(
             'sendMessage'
             , {
               "chatId": chatId
-              , "encodedMessage": "!ALERT! " + stockId + " has changed to " + this.data.stockStore[stockId]
+              , "encodedMessage": "!ALERT! " + quote.Symbol + " has changed " + this.data.stockStore[quote.Symbol] + "% new ASK:" + quote.Ask + " new BID:" + quote.Bid
             }
           );
         };
@@ -313,7 +314,17 @@ class StockAlertBot {
     if(!readError) {
       this.data = JSON.parse(fileData);
       console.log(this.data);
-      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({"botToken": this.data.token});
+      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
+        "botToken": this.data.token
+        , "type": "webhook"
+        , "key": this.data.key
+        , "cert": this.data.cert
+        , "receiver": {
+          "port": 8083
+          , "protocol": "http"
+          , "endpoint": this.data.endpoint
+        }
+      });
 
       this.lib.telegram.on('start', (result) => {this.start(result);});
       this.lib.telegram.on('help', (result) => {this.help(result);});
