@@ -185,7 +185,7 @@ class StockAlertBot {
   getStockUpdates() {
     let now = new Date();
     console.log('---UPDATING STOCKS---' + now.toISOString());
-    let callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,%20PercentChange,%20Ask,%20Bid%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
+    let callUrl = 'https://query.yahooapis.com/v1/public/yql?q=select%20Symbol,PercentChange%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22YHOO%22${target})&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
     let stocksToBeCounted = '';
     
     this.cleanUpUsers();
@@ -218,7 +218,6 @@ class StockAlertBot {
           for(let i = 0; i < jsonData.query.results.quote.length; i += 1) {
             let quote = jsonData.query.results.quote[i];
             console.log(quote.PercentChange);
-            console.log(quote);
             if(quote.Symbol !== 'YHOO') {
               if(quote.PercentChange !== null) {
                 let currentQuote = Math.floor(parseFloat(quote.PercentChange.substr(0, quote.PercentChange.length-1)) * 10) / 10;
@@ -248,7 +247,7 @@ class StockAlertBot {
             'sendMessage'
             , {
               "chatId": chatId
-              , "encodedMessage": "!ALERT! " + quote.Symbol + " has changed " + this.data.stockStore[quote.Symbol] + "% new ASK:" + quote.Ask + " new BID:" + quote.Bid
+              , "encodedMessage": "!ALERT! " + quote.Symbol + " has changed " + quote.PercentChange
             }
           );
         };
