@@ -13,6 +13,42 @@ class TestBuild {
       }
     };
     this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
+    
+    this.lib.mongoManager = new (require('./lib/mongomanager'))({"db": "local.nodejs_cms"});
+    setTimeout(() => {this.run();}, 1000);
+    /*this.lib.mongo.on('connect', (server) => {
+      //console.log(server);
+      server.insert('local.nodejs_cms', [{a:1}, {a:2}], {writeConcern: {w:1}, ordered:false}, (err, results) => {let timer2 = new Date();console.log('core');console.log((timer2.getTime() - timer1.getTime())); server.destroy});
+      //test.done();
+    });
+    this.lib.mongo.on('close', (info) => {
+      console.log('closed');
+    });
+    this.lib.mongo.on('reconnect', () => {
+      console.log('reconnect');
+    });
+    this.lib.mongo.connect();*/
+    
+    /*this.lib.mc = require('mongodb').MongoClient;
+    this.lib.mc.connect('mongodb://localhost:27017/local', function(err, db) {
+        // Get the documents collection
+        let collection = db.collection('nodejs_cms');
+        collection.insertMany([
+          {a : 1}, {a : 2}
+        ], (err, result) => {
+          let timer3 = new Date();
+          console.log('mon');
+          console.log((timer3.getTime() - timer1.getTime()));
+          //callback(result);
+        });
+    });*/
+  }
+  run() {
+    this.lib.mongoManager.insert([{"johnny": "boy"}], (error, result) => {
+      //let timer2 = new Date();
+      console.log('core');
+      //console.log((timer2.getTime() - timer1.getTime()));
+    });
   }
   commandParser(result) {
     console.log('!!!!!!!!!!!!!!!!HEY!!!!!!!!!!!!!!!!');
