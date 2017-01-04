@@ -1,15 +1,15 @@
 {
-  "name": "nexi-telegram-bot-collection",
+  "name": "nexi-telegram-bot-showtime",
   "version": "1.0.0",
-  "description": "Contains a small collection of bots for Telegram Messenger",
-  "main": "index.js",
+  "description": "Telegram messenger showtime bot",
+  "main": "server.js",
   "scripts": {
-    "start": "./bot nexination restart && ./bot showtime restart",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nexination/node-telegram-bot-collection.git"
+    "url": "git+https://github.com/Nexination/node-telegram-bot-showtime.git"
   },
   "keywords": [
     "telegram",
@@ -18,7 +18,7 @@
   "author": "Kristian B",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Nexination/node-telegram-bot-collection/issues"
+    "url": "https://github.com/Nexination/node-telegram-bot-showtime/issues"
   },
-  "homepage": "https://github.com/Nexination/node-telegram-bot-collection#readme"
+  "homepage": "https://github.com/Nexination/node-telegram-bot-showtime#readme"
 }
