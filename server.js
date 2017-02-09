@@ -515,8 +515,8 @@ class ShowTimeBot {
       this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
         "botToken": this.data.token
         , "type": "webhook"
-        , "key": this.data.key
-        , "cert": this.data.cert
+        //, "key": this.data.key
+        //, "cert": this.data.cert
         , "receiver": {
           "port": 8081
           , "protocol": "http"
