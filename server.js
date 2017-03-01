@@ -47,8 +47,9 @@ class ShowTimeBot {
     let chat = null;
     if(this.data.authorized.hasOwnProperty(chatId)) {
       if(!this.data.users.hasOwnProperty(chatId)) {
-        chat = this.data.users[chatId];
+        this.data.users[chatId] = {};
       };
+      chat = this.data.users[chatId];
     };
     
     return chat;
