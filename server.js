@@ -18,7 +18,7 @@ class ShowTimeBot {
     this.data = {
       "token": ""
       , "users": {
-        "90385038": {
+        "31433485": {
           "620": {
             "name": "The Last Man On Earth"
             , "episodeCount": 111
@@ -31,7 +31,7 @@ class ShowTimeBot {
           , "status": "Ended"
           , "episodeCount": 313
           , "users": {
-            "90385038": true
+            "31433485": true
           }
         }
       }
@@ -44,11 +44,14 @@ class ShowTimeBot {
     this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
   }
   chatCheck(chatId) {
-    if(!this.data.users.hasOwnProperty(chatId)) {
-      this.data.users[chatId] = {};
+    let chat = null;
+    if(this.data.authorized.hasOwnProperty(chatId)) {
+      if(!this.data.users.hasOwnProperty(chatId)) {
+        chat = this.data.users[chatId];
+      };
     };
     
-    return this.data.users[chatId];
+    return chat;
   }
   zeroPad(toBePadded, padLength) {
     toBePadded = toBePadded + '';
@@ -72,78 +75,84 @@ class ShowTimeBot {
   }
   start(result) {
     let chatSettings = this.chatCheck(result.message.chat.id);
-    
-    this.lib.telegram.apiCall(
-      'sendMessage'
-      , {
-        "chatId": result.message.chat.id
-        , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated show bot!\n"
-        + "It uses the TV Maze API(http://www.tvmaze.com/) and it alerts you to new episodes of shows you have subscribed to.\n"
-        + "It also allows you to manually check for shows you are behind on.\n"
-        + "Please check /help before you try to use the bot."
-      }
-    );
-    return false;
-  }
-  help(result) {
-    let chatSettings = this.chatCheck(result.message.chat.id);
-    
-    this.lib.telegram.apiCall(
-      'sendMessage'
-      , {
-        "chatId": result.message.chat.id
-        , "encodedMessage": "To use this show alert bot,\n"
-        + "type /showsearch to find a show "
-        + "and then type /showadd to add a show by id.\n\n"
-        + "Command list:\n"
-        + "/start - Greeting message\n"
-        + "/help - Show this help window\n"
-        + "/settings - Show your added shows and other info\n"
-        + "/showadd - Add a show via id to alerts\n"
-        + "/showremove - Remove a show via id from alerts\n"
-        + "/showtick - Tick an episode as viewed via id\n"
-        + "/showmissing - Show the episodes you are behind on\n"
-        + "/showsearch - Search for a show by name or id\n"
-        + "/cancel - Cancels any ongoing action\n\n"
-        + "If you have problems with this product, please visit us on https://github.com/Nexination/node-telegram-bot-collection"
-      }
-    );
-    return false;
-  }
-  settings(result) {
-    let chatSettings = this.chatCheck(result.message.chat.id);
-    
-    let settings = '';
-    for(let i in chatSettings) {
-      settings += i + ': "' + this.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + ' (' + this.data.showStore[i].status + ')\n'
-    };
-    
-    this.lib.telegram.apiCall(
-      'sendMessage'
-      , {
-        "chatId": result.message.chat.id
-        , "encodedMessage": "Your settings: \n"
-        + settings
-      }
-    );
-    return false;
-  }
-  showAdd(result) {
-    if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showAdd(result);});
+    if(chatSettings !== null) {
       this.lib.telegram.apiCall(
         'sendMessage'
         , {
           "chatId": result.message.chat.id
-          , "encodedMessage": "Please input show id(s) you want to subscribe to:"
+          , "encodedMessage": "Welcome " + result.message.from.username + " this is your automated show bot!\n"
+          + "It uses the TV Maze API(http://www.tvmaze.com/) and it alerts you to new episodes of shows you have subscribed to.\n"
+          + "It also allows you to manually check for shows you are behind on.\n"
+          + "Please check /help before you try to use the bot."
         }
       );
-    }
-    else {
-      let idList = result.message.text.split('\n');
-      result.searchCount = idList.length;
-      for(let i = 0; i < idList.length; i += 1) {
-        this.callApi('show', {"showId": idList[i]}, result, (result, response) => {this.showAddHandler(result, response);});
+    };
+    return false;
+  }
+  help(result) {
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      this.lib.telegram.apiCall(
+        'sendMessage'
+        , {
+          "chatId": result.message.chat.id
+          , "encodedMessage": "To use this show alert bot,\n"
+          + "type /showsearch to find a show "
+          + "and then type /showadd to add a show by id.\n\n"
+          + "Command list:\n"
+          + "/start - Greeting message\n"
+          + "/help - Show this help window\n"
+          + "/settings - Show your added shows and other info\n"
+          + "/showadd - Add a show via id to alerts\n"
+          + "/showremove - Remove a show via id from alerts\n"
+          + "/showtick - Tick an episode as viewed via id\n"
+          + "/showmissing - Show the episodes you are behind on\n"
+          + "/showsearch - Search for a show by name or id\n"
+          + "/cancel - Cancels any ongoing action\n\n"
+          + "If you have problems with this product, please visit us on https://github.com/Nexination/node-telegram-bot-collection"
+        }
+      );
+    };
+    return false;
+  }
+  settings(result) {
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      let settings = '';
+      for(let i in chatSettings) {
+        settings += i + ': "' + this.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + ' (' + this.data.showStore[i].status + ')\n'
+      };
+      
+      this.lib.telegram.apiCall(
+        'sendMessage'
+        , {
+          "chatId": result.message.chat.id
+          , "encodedMessage": "Your settings: \n"
+          + settings
+        }
+      );
+    };
+    return false;
+  }
+  showAdd(result) {
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      if(result.message.text.substr(0, 1) === '/') {
+        this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showAdd(result);});
+        this.lib.telegram.apiCall(
+          'sendMessage'
+          , {
+            "chatId": result.message.chat.id
+            , "encodedMessage": "Please input show id(s) you want to subscribe to:"
+          }
+        );
+      }
+      else {
+        let idList = result.message.text.split('\n');
+        result.searchCount = idList.length;
+        for(let i = 0; i < idList.length; i += 1) {
+          this.callApi('show', {"showId": idList[i]}, result, (result, response) => {this.showAddHandler(result, response);});
+        };
       };
     };
     return false;
@@ -236,33 +245,82 @@ class ShowTimeBot {
     return false;
   }
   showRemove(result) {
-    if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showRemove(result);});
-      this.lib.telegram.apiCall(
-        'sendMessage'
-        , {
-          "chatId": result.message.chat.id
-          , "encodedMessage": "Please input show id(s) you want to unsubscribe from:"
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      if(result.message.text.substr(0, 1) === '/') {
+        this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showRemove(result);});
+        this.lib.telegram.apiCall(
+          'sendMessage'
+          , {
+            "chatId": result.message.chat.id
+            , "encodedMessage": "Please input show id(s) you want to unsubscribe from:"
+            
+          }
+        );
+      }
+      else {
+        let showList = result.message.text.split('\n');
+        let chatSettings = this.chatCheck(result.message.chat.id);
+        
+        for(let i = 0; i < showList.length; i += 1) {
+          let showId = showList[i];
+          let message = '';
+          if(chatSettings.hasOwnProperty(showId)) {
+            let showName = this.data.showStore[showId].name;
+            delete this.data.showStore[showId].users[result.message.chat.id];
+            delete chatSettings[showId];
+            
+            message = showName + ' removed.';
+          }
+          else {
+            message = showId + ' not found.';
+          };
           
+          this.lib.telegram.apiCall(
+            'sendMessage'
+            , {
+              "chatId": result.message.chat.id
+              , "encodedMessage": message
+              
+            }
+          );
+          console.log(result.message.chat.id + ': ' + message);
+        };
+      };
+      this.lib.fileUnitFiler.save(JSON.stringify(this.data));
+      console.log('saved');
+    };
+    return false;
+  }
+  showTick(result) {
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      if(result.message.text.substr(0, 1) === '/') {
+        this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showTick(result);});
+        this.lib.telegram.apiCall(
+          'sendMessage'
+          , {
+            "chatId": result.message.chat.id
+            , "encodedMessage": "Please input a show id to advance one episode\n"
+            + "or a show id followed season+episode(612) to go to that specific episode.\n"
+          }
+        );
+      }
+      else {
+        let showData = result.message.text.split(' ');
+        let message = 'You are not currently watching this show.';
+        
+        if(isNaN(showData[0]) || showData.length < 1) {
+          message = 'Wrong format.';
         }
-      );
-    }
-    else {
-      let showList = result.message.text.split('\n');
-      let chatSettings = this.chatCheck(result.message.chat.id);
-      
-      for(let i = 0; i < showList.length; i += 1) {
-        let showId = showList[i];
-        let message = '';
-        if(chatSettings.hasOwnProperty(showId)) {
-          let showName = this.data.showStore[showId].name;
-          delete this.data.showStore[showId].users[result.message.chat.id];
-          delete chatSettings[showId];
-          
-          message = showName + ' removed.';
-        }
-        else {
-          message = showId + ' not found.';
+        else if(chatSettings.hasOwnProperty(showData[0])) {
+          if(showData.length === 1) {
+            chatSettings[showData[0]].episodeCount += 1;
+          }
+          else {
+            chatSettings[showData[0]].episodeCount = parseInt(showData[1]);
+          };
+          message = this.data.showStore[showData[0]].name + " updated to " + chatSettings[showData[0]].episodeCount;
         };
         
         this.lib.telegram.apiCall(
@@ -275,100 +333,59 @@ class ShowTimeBot {
         );
         console.log(result.message.chat.id + ': ' + message);
       };
+      this.lib.fileUnitFiler.save(JSON.stringify(this.data));
+      console.log('saved');
     };
-    this.lib.fileUnitFiler.save(JSON.stringify(this.data));
-    console.log('saved');
     return false;
   }
-  showTick(result) {
+  showMissing(result) {
     let chatSettings = this.chatCheck(result.message.chat.id);
-    
-    if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showTick(result);});
-      this.lib.telegram.apiCall(
-        'sendMessage'
-        , {
-          "chatId": result.message.chat.id
-          , "encodedMessage": "Please input a show id to advance one episode\n"
-          + "or a show id followed season+episode(612) to go to that specific episode.\n"
-        }
-      );
-    }
-    else {
-      let showData = result.message.text.split(' ');
-      let message = 'You are not currently watching this show.';
+    if(chatSettings !== null) {
+      let behindOnShows = '';
       
-      if(isNaN(showData[0]) || showData.length < 1) {
-        message = 'Wrong format.';
-      }
-      else if(chatSettings.hasOwnProperty(showData[0])) {
-        if(showData.length === 1) {
-          chatSettings[showData[0]].episodeCount += 1;
-        }
-        else {
-          chatSettings[showData[0]].episodeCount = parseInt(showData[1]);
+      for(let i in chatSettings) {
+        console.log(i + this.data.showStore[i]);
+        if(chatSettings[i].episodeCount < this.data.showStore[i].episodeCount) {
+          behindOnShows += i + ': ' + '"' + this.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + '/' + this.data.showStore[i].episodeCount + '\n';
         };
-        message = this.data.showStore[showData[0]].name + " updated to " + chatSettings[showData[0]].episodeCount;
       };
       
+      let message = 'Shows you are behind on:\n' + behindOnShows;
       this.lib.telegram.apiCall(
         'sendMessage'
         , {
           "chatId": result.message.chat.id
           , "encodedMessage": message
-          
         }
       );
       console.log(result.message.chat.id + ': ' + message);
     };
-    this.lib.fileUnitFiler.save(JSON.stringify(this.data));
-    console.log('saved');
-    return false;
-  }
-  showMissing(result) {
-    let chatSettings = this.chatCheck(result.message.chat.id);
-    let behindOnShows = '';
-    
-    for(let i in chatSettings) {
-      console.log(i + this.data.showStore[i]);
-      if(chatSettings[i].episodeCount < this.data.showStore[i].episodeCount) {
-        behindOnShows += i + ': ' + '"' + this.data.showStore[i].name + '" E:' + chatSettings[i].episodeCount + '/' + this.data.showStore[i].episodeCount + '\n';
-      };
-    };
-    
-    let message = 'Shows you are behind on:\n' + behindOnShows;
-    this.lib.telegram.apiCall(
-      'sendMessage'
-      , {
-        "chatId": result.message.chat.id
-        , "encodedMessage": message
-      }
-    );
-    console.log(result.message.chat.id + ': ' + message);
-    
     return false;
   }
   showSearch(result) {
-    if(result.message.text.substr(0, 1) === '/') {
-      this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showSearch(result);});
-      this.lib.telegram.apiCall(
-        'sendMessage'
-        , {
-          "chatId": result.message.chat.id
-          , "encodedMessage": "Please input part of a show name or id(s) from TvRage or TheTvDB:"
-        }
-      );
-    }
-    else {
-      let text = result.message.text;
-      let idList = text.split('\n');
-      if(isNaN(idList[0])) {
-        this.callApi('search', {"query": text}, result, (result, response) => {this.showSearchHandler(result, response);});
+    let chatSettings = this.chatCheck(result.message.chat.id);
+    if(chatSettings !== null) {
+      if(result.message.text.substr(0, 1) === '/') {
+        this.lib.telegram.deferAction(result.message.chat.id, (result) => {this.showSearch(result);});
+        this.lib.telegram.apiCall(
+          'sendMessage'
+          , {
+            "chatId": result.message.chat.id
+            , "encodedMessage": "Please input part of a show name or id(s) from TvRage or TheTvDB:"
+          }
+        );
       }
       else {
-        result.searchCount = idList.length;
-        for(let i = 0; i < idList.length; i += 1) {
-          this.callApi('searchId', {"searchId": idList[i]}, result, (result, response) => {this.showSearchHandler(result, response);});
+        let text = result.message.text;
+        let idList = text.split('\n');
+        if(isNaN(idList[0])) {
+          this.callApi('search', {"query": text}, result, (result, response) => {this.showSearchHandler(result, response);});
+        }
+        else {
+          result.searchCount = idList.length;
+          for(let i = 0; i < idList.length; i += 1) {
+            this.callApi('searchId', {"searchId": idList[i]}, result, (result, response) => {this.showSearchHandler(result, response);});
+          };
         };
       };
     };
