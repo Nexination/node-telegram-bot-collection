@@ -532,14 +532,14 @@ class ShowTimeBot {
       console.log(this.data);
       this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
         "botToken": this.data.token
-        , "type": "polling"
-        /*, "key": this.data.key
-        , "cert": this.data.cert
+        , "type": "webhook"
+        //, "key": this.data.key
+        //, "cert": this.data.cert
         , "receiver": {
           "port": 8081
           , "protocol": "http"
           , "endpoint": this.data.endpoint
-        }*/
+        }
       });
       
       this.lib.telegram.on('start', (result) => {this.start(result);});
