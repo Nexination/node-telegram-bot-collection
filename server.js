@@ -40,6 +40,7 @@ class ShowTimeBot {
       "searchStore": {}
       , "notifyStore": {}
       , "episodeUpdateCount": 0
+      , "showUpdateProgress": {}
     };
     this.lib.fileUnitFiler.load((readError, fileData) => {this.runAfterLoad(readError, fileData);});
   }
@@ -53,6 +54,10 @@ class ShowTimeBot {
     };
     
     return chat;
+  }
+  dayOfWeek(dayNo) {
+    let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    return days[dayNo];
   }
   zeroPad(toBePadded, padLength) {
     toBePadded = toBePadded + '';
@@ -438,20 +443,45 @@ class ShowTimeBot {
     return false;
   }
   getShowUpdates() {
-    let countries = [
-      "US"
-      , "GB"
-    ];
+    this.temp.showUpdateProgress = {};
     let now = new Date();
+    let weekDayToday = this.dayOfWeek(now.getDay());
+    let currentTime = now.getTime();
     
-    if(now.getHours() === 23) {
-      for(let i = 0; i < countries.length; i += 1) {
-        this.callApi('schedule', {"countryCode": countries[i]}, {"country": countries[i]}, (result, response) => {this.getShowUpdatesHandler(result, response);});
+    for(let i in this.data.showStore) {
+      let newShow = false;
+      if(!this.data.showStore[i].hasOwnProperty('nextCheck')) {
+        newShow = true;
+      };
+      if(
+        newShow
+        || (this.data.showStore[i].days.indexOf(weekDayToday) >= 0
+        && currentTime > this.data.showStore[i].nextCheck)
+      ) {
+        this.callApi('show', {"showId": i}, {"id": i}, (result, response) => {
+          let data = '';
+          response.on('data', (chunk) => {
+            data += chunk;
+          });
+          response.on('end', () => {
+            if(data) {
+              let json = JSON.parse(data);
+              this.data.showStore[json.id].name = json.name;
+              this.data.showStore[json.id].status = json.status;
+              this.data.showStore[json.id].genres = json.genres;
+              this.data.showStore[json.id].updated = json.updated;
+              this.data.showStore[json.id].nextCheck = (new Date()).getTime() + 86000000; // Next check in 23h53m
+              this.data.showStore[json.id].days = json.schedule.days;
+              this.data.showStore[json.id].image = json.image.original;
+              this.data.showStore[json.id].nextepisode = (json._links.hasOwnProperty("nextepisode") ? json._links.nextepisode : null);
+              this.data.showStore[json.id].network = (json.network !== null ? json.network.name : json.webChannel.name);
+            };
+          });
+        });
       };
     };
-    return false;
   }
-  getShowUpdatesHandler(result, response) {
+  /*getShowUpdatesHandler(result, response) {
     let data = '';
     response.on('data', (chunk) => {
       data += chunk;
@@ -489,7 +519,7 @@ class ShowTimeBot {
       console.log(this.temp.notifyStore);
     });
     return false;
-  }
+  }*/
   deferredActionCancel(result) {
     this.lib.telegram.deferActionRemove(result.message.chat.id);
     this.lib.telegram.apiCall(
@@ -529,8 +559,8 @@ class ShowTimeBot {
   runAfterLoad(readError, fileData) {
     if(!readError) {
       this.data = JSON.parse(fileData);
-      console.log(this.data);
-      this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
+      //console.log(this.data);
+      /*this.lib.telegram = new (require('telegram-bot-manager').BotManager)({
         "botToken": this.data.token
         , "type": "webhook"
         //, "key": this.data.key
@@ -552,7 +582,7 @@ class ShowTimeBot {
       this.lib.telegram.on('showsearch', (result) => {this.showSearch(result);});
       this.lib.telegram.on('cancel', (result) => {this.deferredActionCancel(result);});
       
-      this.alertAllUsers();
+      this.alertAllUsers();*/
       this.getShowUpdates();
       setInterval(() => {this.getShowUpdates();}, (60*60*1000));
     }
